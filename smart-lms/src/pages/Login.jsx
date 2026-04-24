@@ -33,19 +33,58 @@ const Login = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-indigo-600">
-      <div className="bg-white p-10 rounded-2xl shadow-2xl text-center">
-        <h1 className="text-3xl font-bold mb-6 text-slate-800">Smart LMS UNNES</h1>
-        <p className="text-slate-500 mb-8">Masuk untuk memulai Career Assessment</p>
-        <button 
-          onClick={loginGoogle}
-          className="bg-white border border-slate-300 px-6 py-3 rounded-lg font-bold flex items-center gap-3 hover:bg-slate-50 transition-all mx-auto"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="google" className="w-5" />
-          Masuk dengan Google
-        </button>
+    <div className="min-h-screen flex bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800">
+
+    {/* LEFT SIDE */}
+    <div className="hidden md:flex w-1/2 flex-col justify-center px-16 text-white">
+      <h1 className="text-5xl font-bold leading-tight">
+        Build Your Future <br /> Career with AI 🚀
+      </h1>
+
+      <p className="mt-6 text-lg text-white/80">
+        Smart LMS membantu kamu memahami potensi skill,
+        menemukan jalur karier terbaik, dan berkembang
+        dengan analisis berbasis Artificial Intelligence.
+      </p>
+
+      <div className="mt-10 bg-white/10 p-6 rounded-xl backdrop-blur-md">
+        <p className="text-sm">🤖 AI Insight:</p>
+        <p className="mt-2 font-semibold">
+          "Skill communication tinggi → cocok ke Product Manager"
+        </p>
       </div>
     </div>
+
+    {/* RIGHT SIDE */}
+    <div className="flex w-full md:w-1/2 items-center justify-center">
+      <div className="bg-white/10 backdrop-blur-xl p-10 rounded-2xl shadow-2xl text-center border border-white/20 w-[350px]">
+
+        <h2 className="text-2xl font-bold text-white">
+          Masuk ke Smart LMS
+        </h2>
+
+        <p className="text-white/70 mt-2 mb-6">
+          Mulai analisis karier kamu sekarang
+        </p>
+
+        <button
+          onClick={loginGoogle}
+          className="bg-white text-slate-800 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-3 hover:scale-105 transition-all w-full"
+        >
+          <img
+            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+            alt="google"
+            className="w-5"
+          />
+          Masuk dengan Google
+        </button>
+
+        <p className="text-xs text-white/50 mt-6">
+          Dengan masuk, kamu menyetujui Terms & Privacy Policy
+        </p>
+      </div>
+    </div>
+  </div>
   );
 };
 
