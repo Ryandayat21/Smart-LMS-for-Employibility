@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase'; // Pastikan auth sudah diekspor di firebase.js
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from "firebase/auth";
 
 // Import Pages
 import Sidebar from './components/Sidebar';
@@ -117,6 +118,17 @@ const App = () => {
     setIsAnalysing(false);
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // Setelah logout, state 'user' di onAuthStateChanged 
+      // akan otomatis jadi null, dan layar login bakal muncul sendiri.
+      console.log("User berhasil keluar");
+    } catch (error) {
+      console.error("Gagal logout:", error.message);
+    }
+  };
+
   // --- 3. LOGIKA TAMPILAN (RENDERING) ---
   
   // A. Jika masih loading cek login
@@ -133,7 +145,7 @@ const App = () => {
   // D. Tampilan Utama (Sudah Login & Punya Data)
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={user.role} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={user.role} onLogout={handleLogout} />
       <main className="flex-1 overflow-y-auto p-8">
         <div className="mb-6 flex justify-between items-end">
           <div>

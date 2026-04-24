@@ -33,7 +33,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800">
+    <div className="min-h-screen flex bg-linear-to-br from-indigo-600 via-purple-600 to-indigo-800">
 
     {/* LEFT SIDE */}
     <div className="hidden md:flex w-1/2 flex-col justify-center px-16 text-white">
@@ -57,7 +57,7 @@ const Login = () => {
 
     {/* RIGHT SIDE */}
     <div className="flex w-full md:w-1/2 items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-xl p-10 rounded-2xl shadow-2xl text-center border border-white/20 w-[350px]">
+      <div className="bg-white/10 backdrop-blur-xl p-10 rounded-2xl shadow-2xl text-center border border-white/20 w-87.5">
 
         <h2 className="text-2xl font-bold text-white">
           Masuk ke Smart LMS
