@@ -9,7 +9,8 @@ import Dashboard from './pages/Dashboard';
 import Assessment from './pages/Assessment';
 import Analytics from './pages/Analytics';
 import SetupProfile from './pages/SetupProfile';
-import Login from './pages/Login'; 
+import Login from './pages/Login';
+import UserProfile from './pages/UserProfile';
 
 const App = () => {
   // --- STATE UTAMA ---
@@ -133,25 +134,23 @@ const App = () => {
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={user.role} />
-      
       <main className="flex-1 overflow-y-auto p-8">
         <div className="mb-6 flex justify-between items-end">
           <div>
             <p className="text-sm text-slate-500 uppercase tracking-wider">Halaman</p>
             <h2 className="text-3xl font-extrabold capitalize text-slate-800">{activeTab}</h2>
           </div>
-          <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100">
+          <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-pointer" onClick={() => setActiveTab('profile')}>
             <p className="font-bold text-slate-700">{user.name}</p>
             <p className="text-xs text-indigo-600 font-medium">{user.role?.toUpperCase()} | {user.targetJob}</p>
           </div>
         </div>
-        
         {/* Konten Berdasarkan Tab */}
         {activeTab === 'dashboard' && 
           <Dashboard 
-          user={user} 
-          runAiAnalysis={runAiAnalysis} 
-        />}
+            user={user} 
+            runAiAnalysis={runAiAnalysis} 
+          />}
         {activeTab === 'assessment' && <Assessment user={user} />}
         {activeTab === 'analytics' && (
           <Analytics 
@@ -161,6 +160,7 @@ const App = () => {
             runAiAnalysis={runAiAnalysis}
           />
         )}
+        {activeTab === 'profile' && <UserProfile user={user} />}
       </main>
     </div>
   );
