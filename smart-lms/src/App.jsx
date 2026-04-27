@@ -117,7 +117,7 @@ const App = () => {
     }
     setIsAnalysing(false);
   };
-
+  // --- FUNGSI LOGOUT ---
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -158,14 +158,9 @@ const App = () => {
           </div>
         </div>
         {/* Konten Berdasarkan Tab */}
-        {activeTab === 'dashboard' && 
-          <Dashboard 
-            user={user} 
-            runAiAnalysis={runAiAnalysis} 
-          />}
         {activeTab === 'assessment' && <Assessment user={user} />}
-        {activeTab === 'analytics' && (
-          <Analytics 
+        {activeTab === 'dashboard' && (
+          <Dashboard 
             user={user}
             aiResult={aiResult}
             isAnalysing={isAnalysing}
