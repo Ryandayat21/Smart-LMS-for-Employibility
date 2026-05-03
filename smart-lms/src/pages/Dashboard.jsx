@@ -2,6 +2,18 @@ import React from 'react';
 // Import icon yang lo pake (misal dari lucide-react)
 import { Sparkles, Download, BrainCircuit } from 'lucide-react';
 
+const skillColors = {
+  leadership: "bg-amber-500",
+  digitalLiteracy: "bg-sky-500",
+  workEthic: "bg-emerald-500",
+  communication: "bg-blue-500",
+  technical: "bg-indigo-600",
+  emotionalIntelligence: "bg-rose-500",
+  attentionToDetail: "bg-violet-500",
+  teamwork: "bg-orange-500",
+  criticalThinking: "bg-cyan-500",
+  problemSolving: "bg-purple-600",
+};
 const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing }) => {
   return (
     <div className="flex flex-col gap-6">
@@ -20,12 +32,12 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing }) => {
               <div key={skill} className="space-y-1">
                 <div className="flex justify-between text-xs font-medium text-slate-500 capitalize">
                   <span>{skill.replace(/([A-Z])/g, ' $1')}</span>
-                  <span>{value}%</span>
+                  <span>{value}</span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-indigo-600 rounded-full transition-all duration-500" 
-                    style={{ width: `${value}%` }}
+                    className={`h-full rounded-full ${skillColors[skill] || 'bg-indigo-600'}`} 
+                    style={{ width: `${(value / 5) * 100}%` }}
                   />
                 </div>
               </div>

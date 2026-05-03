@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase'; // Pastikan auth sudah diekspor di firebase.js
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 
 // Import Pages
@@ -23,30 +23,36 @@ const App = () => {
 
   // --- 1. MONITOR STATUS LOGIN (AUTH) ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        // Jika ada yang login, cari datanya di Firestore
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
+    // 1. Pantau status login (Auth)
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      if (authUser) {
+        // 2. Jika ada user login, pantau datanya di Firestore secara real-time
+        const userRef = doc(db, "users", authUser.uid);
+        
+        const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            // Update state user setiap kali ada perubahan di Firestore (misal: habis submit test)
+            setUser({ uid: authUser.uid, ...docSnap.data() });
+          } else {
+            // Penanganan untuk user baru
+            setUser({ 
+              uid: authUser.uid, 
+              name: authUser.displayName || "User Baru", 
+              isNew: true 
+            });
+          }
+          setLoading(false);
+        });
 
-        if (docSnap.exists()) {
-          // Gabungkan data Auth (email/uid) dengan data Firestore (role/job/skills)
-          setUser({ uid: currentUser.uid, ...docSnap.data() });
-        } else {
-          // Jika login berhasil tapi data di Firestore belum ada (user baru)
-          setUser({ 
-            uid: currentUser.uid, 
-            name: currentUser.displayName || "User Baru", 
-            isNew: true 
-          });
-        }
+        // Cleanup snapshot listener saat logout
+        return () => unsubscribeSnapshot();
       } else {
-        setUser(null); // Tidak ada yang login
+        setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   // --- 2. FUNGSI AI (UPDATE TERBARU) ---
@@ -159,6 +165,7 @@ const App = () => {
         </div>
         {/* Konten Berdasarkan Tab */}
         {activeTab === 'assessment' && <Assessment user={user} />}
+        {activeTab === 'analytics' && <Analytics user={user} />}
         {activeTab === 'dashboard' && (
           <Dashboard 
             user={user}

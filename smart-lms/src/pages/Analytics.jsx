@@ -1,79 +1,76 @@
 import React from 'react';
-import { BrainCircuit, Sparkles, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
+  ResponsiveContainer, Tooltip 
+} from 'recharts';
+import { Target, Info } from 'lucide-react';
 
-// WAJIB: Tambahkan props di dalam kurung ini agar data AI masuk
-const Analytics = ({ aiResult, isAnalysing, runAiAnalysis }) => {
+const Analytics = ({ user }) => {
+  // Format data dari user.skills untuk Recharts
+  const data = [
+    { subject: 'Technical', A: user.skills?.technical || 0, fullMark: 5 },
+    { subject: 'Comm.', A: user.skills?.communication || 0, fullMark: 5 },
+    { subject: 'Prob. Solving', A: user.skills?.problemSolving || 0, fullMark: 5 },
+    { subject: 'Leadership', A: user.skills?.leadership || 0, fullMark: 5 },
+    { subject: 'Teamwork', A: user.skills?.teamwork || 0, fullMark: 5 },
+    { subject: 'Emotional', A: user.skills?.emotionalIntel || 0, fullMark: 5 },
+    { subject: 'Digital', A: user.skills?.digitalLiteracy || 0, fullMark: 5 },
+    { subject: 'Critical', A: user.skills?.criticalThinking || 0, fullMark: 5 },
+    { subject: 'Detail', A: user.skills?.attentionDetail || 0, fullMark: 5 },
+    { subject: 'Ethics', A: user.skills?.workEthic || 0, fullMark: 5 },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Radar Map Placeholder */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-h-75">
-          <TrendingUp size={48} className="text-slate-300 mb-4" />
-          <p className="text-slate-400 font-medium italic text-center">
-            [ Visualisasi Grafik Radar Skill Karir ]
-          </p>
-          <p className="text-[10px] text-slate-300 mt-2 italic text-center text-wrap px-4">
-            Grafik akan otomatis ter-update berdasarkan performa belajar di Layer 1 & 2.
-          </p>
-        </div>
-
-        {/* AI Interpretation */}
-        <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl flex flex-col justify-between">
+    <div className="flex flex-col gap-6 h-full">
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex-1">
+        <div className="flex justify-between items-start mb-8">
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30">
-                  <BrainCircuit className="text-indigo-400" />
-                </div>
-                <h3 className="text-xl font-bold">Smart Analysis Insight</h3>
-              </div>
-              {/* Tombol Refresh AI */}
-              <button 
-                onClick={runAiAnalysis}
-                disabled={isAnalysing}
-                className="p-2 hover:bg-white/10 rounded-xl transition-all disabled:opacity-50"
-              >
-                {isAnalysing ? <Loader2 className="animate-spin text-indigo-400" size={20}/> : <Sparkles className="text-indigo-400" size={20}/>}
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* Box Hasil AI */}
-              <div className="flex gap-4 p-5 bg-white/5 rounded-2xl border border-white/10 min-h-37.5">
-                <div className="mt-1">
-                  <Sparkles className="text-amber-400 shrink-0" size={20} />
-                </div>
-                
-                {isAnalysing ? (
-                  <div className="flex flex-col gap-2 w-full animate-pulse">
-                    <div className="h-4 bg-white/10 rounded w-3/4"></div>
-                    <div className="h-4 bg-white/10 rounded w-full"></div>
-                    <div className="h-4 bg-white/10 rounded w-5/6"></div>
-                    <p className="text-xs text-indigo-400 mt-2 italic text-center font-black">Saya sedang meracik saran karirmu...</p>
-                  </div>
-                ) : (
-                  <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                    {aiResult || "Belum ada analisis. Klik ikon bintang di pojok kanan atas untuk memulai analisis AI berdasarkan data belajarmu."}
-                  </div>
-                )}
-              </div>
-
-              {/* Box Info Tambahan */}
-              {!isAnalysing && aiResult && (
-                <div className="flex gap-4 p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
-                  <AlertCircle className="text-indigo-400 shrink-0" size={20} />
-                  <p className="text-xs text-slate-300 italic">
-                    Analisis ini bersifat rekomendasi berbasis data objektif.
-                  </p>
-                </div>
-              )}
+            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <Target className="text-indigo-600" /> Career Skill Radar
+            </h3>
+            <p className="text-sm text-slate-500">Visualisasi 10 Aspek Kompetensi terhadap Target: <span className="font-semibold text-indigo-600">{user.targetJob}</span></p>
+          </div>
+          <div className="p-2 bg-slate-50 rounded-full cursor-help group relative">
+            <Info size={20} className="text-slate-400" />
+            <div className="absolute right-0 top-full mt-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              Grafik ini akan otomatis berubah setiap kali Anda menyelesaikan Direct Assessment.
             </div>
           </div>
+        </div>
 
-          <button className="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-900/20 disabled:opacity-50" disabled={isAnalysing}>
-            Download Career Roadmap (.pdf)
-          </button>
+        {/* Radar Chart Container */}
+        <div className="w-full h-112.5">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+              <PolarGrid stroke="#e2e8f0" />
+              <PolarAngleAxis 
+                dataKey="subject" 
+                tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
+              />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+              <Radar
+                name="Kompetensi"
+                dataKey="A"
+                stroke="#4f46e5"
+                strokeWidth={3}
+                fill="#4f46e5"
+                fillOpacity={0.3}
+              />
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Legend/Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
+          {data.map((item) => (
+            <div key={item.subject} className="text-center p-3 bg-slate-50 rounded-2xl">
+              <p className="text-[10px] text-slate-400 uppercase font-bold">{item.subject}</p>
+              <p className="text-lg font-bold text-slate-700">{item.A}%</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,193 +1,281 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
-import { CheckCircle2, ArrowRight, ClipboardList } from 'lucide-react';
-
-  // --- BANK SOAL (Contoh 10 Soal mewakili 10 Aspek) ---
-const questionBank = [
-  {
-    id: 1,
-    question: "Bagaimana cara Anda menangani data yang hilang dalam sebuah dataset?",
-    options: ["Dihapus saja", "Dibiarkan", "Imputasi dengan Mean/Median", "Tanya teman"],
-    answer: "Imputasi dengan Mean/Median",
-    category: "technical",
-    impact: { "data-analyst": 1.5, "marketing": 0.5 }
-  },
-  {
-    id: 2,
-    question: "Jika klien marah karena hasil laporan terlambat, apa tindakan Anda?",
-    options: ["Minta maaf & beri solusi", "Diamkan", "Salahkan tim lain", "Blokir nomornya"],
-    answer: "Minta maaf & beri solusi",
-    category: "communication",
-    impact: { "front-office": 1.8, "data-analyst": 0.7 }
-  },
-  {
-    id: 3,
-    question: "Apa yang Anda lakukan ketika menemukan bug kritis di production tepat sebelum jam pulang?",
-    options: ["Langsung perbaiki & laporkan", "Pulang dulu, besok diperbaiki", "Pura-pura tidak tahu", "Salahkan rekan kerja"],
-    answer: "Langsung perbaiki & laporkan",
-    category: "technical",
-    impact: { "backend-developer": 1.8, "frontend-developer": 1.5, "data-analyst": 0.8 }
-  },
-  {
-    id: 4,
-    question: "Bagaimana cara Anda memprioritaskan pekerjaan ketika memiliki banyak tugas dengan deadline yang sama?",
-    options: ["Kerjakan semua sekaligus", "Buat prioritas berdasarkan urgensi & dampak", "Pilih yang termudah dulu", "Minta perpanjangan semua deadline"],
-    answer: "Buat prioritas berdasarkan urgensi & dampak",
-    category: "problemSolving",
-    impact: { "project-manager": 1.8, "front-office": 1.5, "backend-developer": 1.2 }
-  },
-  {
-    id: 5,
-    question: "Anda diminta presentasi mendadak di depan klien penting tanpa persiapan. Apa yang Anda lakukan?",
-    options: ["Tolak karena tidak siap", "Sampaikan dengan percaya diri menggunakan data yang ada", "Minta orang lain menggantikan", "Diam saja"],
-    answer: "Sampaikan dengan percaya diri menggunakan data yang ada",
-    category: "communication",
-    impact: { "front-office": 1.8, "marketing": 1.6, "project-manager": 1.4 }
-  },
-  {
-    id: 6,
-    question: "Manakah query SQL yang tepat untuk mengambil 5 data teratas berdasarkan nilai tertinggi?",
-    options: ["SELECT * FROM table LIMIT 5", "SELECT * FROM table ORDER BY nilai DESC LIMIT 5", "SELECT TOP 5 FROM table", "SELECT * FROM table WHERE nilai = MAX(nilai)"],
-    answer: "SELECT * FROM table ORDER BY nilai DESC LIMIT 5",
-    category: "technical",
-    impact: { "data-analyst": 1.8, "backend-developer": 1.5, "marketing": 0.3 }
-  },
-  {
-    id: 7,
-    question: "Rekan kerja Anda terus-menerus mengambil kredit atas pekerjaan Anda. Apa yang Anda lakukan?",
-    options: ["Diam saja agar tidak konflik", "Bicarakan langsung secara profesional", "Balas dengan hal yang sama", "Langsung lapor ke atasan tanpa diskusi"],
-    answer: "Bicarakan langsung secara profesional",
-    category: "communication",
-    impact: { "front-office": 1.6, "project-manager": 1.5, "backend-developer": 1.0 }
-  },
-  {
-    id: 8,
-    question: "Apa yang dimaksud dengan A/B Testing dalam konteks marketing digital?",
-    options: ["Membandingkan dua versi konten untuk melihat mana yang lebih efektif", "Teknik backup data", "Metode enkripsi data", "Cara menghitung ROI"],
-    answer: "Membandingkan dua versi konten untuk melihat mana yang lebih efektif",
-    category: "technical",
-    impact: { "marketing": 1.8, "data-analyst": 1.4, "front-office": 0.5 }
-  },
-  {
-    id: 9,
-    question: "Tim Anda sedang mengerjakan proyek namun ada anggota yang tidak berkontribusi. Sebagai ketua, apa tindakan Anda?",
-    options: ["Kerjakan sendiri saja", "Tegur secara personal & cari tahu kendala yang dihadapi", "Langsung keluarkan dari tim", "Biarkan saja asal selesai"],
-    answer: "Tegur secara personal & cari tahu kendala yang dihadapi",
-    category: "problemSolving",
-    impact: { "project-manager": 1.9, "front-office": 1.3, "marketing": 1.2 }
-  },
-  {
-    id: 10,
-    question: "Apa pendekatan terbaik dalam merancang UI yang ramah pengguna (user-friendly)?",
-    options: ["Tambahkan sebanyak mungkin fitur", "Fokus pada kemudahan navigasi & konsistensi desain", "Gunakan warna sebanyak mungkin", "Ikuti tren desain terkini tanpa riset"],
-    answer: "Fokus pada kemudahan navigasi & konsistensi desain",
-    category: "technical",
-    impact: { "frontend-developer": 1.9, "marketing": 1.3, "project-manager": 1.0 }
-  }
-];
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { Mic, MicOff, Send, CheckCircle2, ChevronRight } from 'lucide-react';
 
 const Assessment = ({ user }) => {
-  const questions = questionBank;
-  const [currentStep, setCurrentStep] = useState(0); // 0: Start, 1: Quiz, 2: Finished
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [scores, setScores] = useState({
-    technical: 0, digitalLiteracy: 0, communication: 0,
-    leadership: 0, teamwork: 0, emotionalIntel: 0,
-    problemSolving: 0, criticalThinking: 0,
-    attentionDetail: 0, workEthic: 0
-  });
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [pgScores, setPgScores] = useState({}); // ✅ Simpan skor PG sementara
 
-const handleAnswer = (selectedIdx) => {
-    const question = questions[currentQuestion];
-    const selectedOption = question.options[selectedIdx];
-    
-    // Cek apakah teks pilihan yang dipilih sama dengan teks di field 'answer'
-    if (selectedOption === question.answer) {
-      // Ambil multiplier berdasarkan targetJob user (default 1.0)
-      const multiplier = question.impact[user.targetJob] || 1.0;
-      const addedScore = 10 * multiplier;
-      
-      setScores(prev => ({
-        ...prev,
-        [question.category]: prev[question.category] + addedScore
-      }));
-    }
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      const querySnapshot = await getDocs(collection(db, "questions"));
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // ✅ Urutkan soal: PG dulu, baru conversation
+      data.sort((a, b) => a.order - b.order);
+      setQuestions(data);
+    };
+    fetchQuestions();
+  }, []);
 
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      finishAssessment();
-    }
+  const currentQuestion = questions[currentIndex];
+
+  // ✅ Perbaikan: Simpan skor PG sementara, baru simpan ke Firebase di akhir
+  const handlePGAnswer = async (score) => {
+      const aspect = currentQuestion.aspect;
+
+      // Update state lokal (tetap pertahankan ini untuk tracking)
+      const newScores = { ...pgScores, [aspect]: score };
+      setPgScores(newScores);
+
+      // ✅ SIMPAN LANGSUNG KE DOKUMEN USER (Bukan assessment_results)
+      try {
+        const userRef = doc(db, "users", user.uid); // Path harus ke koleksi users
+        await setDoc(userRef, {
+          skills: {
+            [aspect]: score // Masukkan ke dalam map skills
+          }
+        }, { merge: true });
+        
+        console.log(`✅ Tersimpan di Dashboard: ${aspect} = ${score}`);
+      } catch (error) {
+        console.error("❌ Gagal simpan:", error);
+      }
+
+      nextQuestion(newScores);
+    };
+
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Browser tidak mendukung Speech Recognition. Gunakan Chrome!");
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'id-ID';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = (e) => {
+      console.error("Speech error:", e);
+      setIsRecording(false);
+    };
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      setTranscript(text);
+    };
+
+    recognition.start();
   };
 
-  const finishAssessment = async () => {
-    setCurrentStep(2);
+  // ✅ Perbaikan lengkap AI Grader
+  const submitVoiceAnswer = async () => {
+    if (!transcript) return;
+    setIsAnalysing(true);
+
     try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        skills: scores // Kirim hasil skor ke Firestore
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.3-70b-instruct:free",
+          messages: [
+            {
+              role: "system",
+              content: `Anda adalah penilai kompetensi untuk Smart LMS Employability Assessment.
+Skenario pertanyaan: "${currentQuestion.scenario}"
+Aspek yang dinilai: ${currentQuestion.targetedAspects.join(", ")}
+
+INSTRUKSI PENILAIAN:
+- Berikan skor 1-5 untuk setiap aspek yang disebutkan
+- Skor 1 = Sangat Kurang, 5 = Sangat Baik
+- Jika jawaban tidak relevan atau tidak nyambung, beri skor 1
+- Jika jawaban kosong atau terlalu pendek, beri skor 1
+
+FORMAT OUTPUT HARUS JSON PERSIS SEPERTI INI (tanpa teks lain):
+{
+  "skills": {
+    "namaAspek": skorAngka
+  }
+}
+
+Contoh output yang benar:
+{
+  "skills": {
+    "communication": 4,
+    "leadership": 3
+  }
+}`
+            },
+            { role: "user", content: transcript }
+          ]
+        })
       });
+
+      const data = await response.json();
+
+      // ✅ Perbaikan: Handle kalau AI tidak balas JSON
+      let result;
+      try {
+        const raw = data.choices[0].message.content;
+        const cleaned = raw.replace(/```json|```/g, '').trim();
+        result = JSON.parse(cleaned);
+      } catch (e) {
+        console.error("AI tidak balas JSON:", e);
+        alert("AI gagal memproses jawaban. Coba jawab lagi.");
+        setIsAnalysing(false);
+        return;
+      }
+
+      // ✅ Gabungkan skor conversation dengan skor PG
+      const allScores = {
+        ...pgScores,
+        ...result.skills
+      };
+
+      // ✅ Simpan ke Firebase sekali di akhir
+      const resultRef = doc(db, "assessment_results", user.uid);
+      await setDoc(resultRef, {
+        skills: allScores,
+        completedAt: new Date(),
+        userId: user.uid
+      }, { merge: true });
+
+      setTranscript("");
+      nextQuestion();
+
     } catch (error) {
-      console.error("Gagal update skor:", error);
+      console.error("AI Error:", error);
+      alert("Koneksi AI bermasalah. Coba lagi.");
+    } finally {
+      setIsAnalysing(false);
     }
   };
+
+  // ✅ Simpan semua skor ke Firebase saat assessment selesai
+  const nextQuestion = async (latestScores = pgScores) => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      // Assessment selesai
+      setIsFinished(true);
+    }
+  };
+
+  if (questions.length === 0) return (
+    <div className="p-10 text-center text-slate-500">
+      Memuat Soal... ⏳
+    </div>
+  );
+
+  if (isFinished) return (
+    <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl shadow-sm text-center">
+      <CheckCircle2 size={64} className="text-green-500 mb-4" />
+      <h2 className="text-2xl font-bold">Assessment Selesai! 🎉</h2>
+      <p className="text-slate-500 mb-6">
+        Skor kompetensi kamu telah disimpan. Cek hasilnya di halaman Analytics!
+      </p>
+    </div>
+  );
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* 1. START SCREEN */}
-      {currentStep === 0 && (
-        <div className="bg-white p-8 rounded-3xl shadow-sm border text-center">
-          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ClipboardList size={32} />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Career Assessment</h2>
-          <p className="text-slate-500 mb-6">Penilaian ini akan mengukur 10 aspek kompetensi Anda untuk posisi <span className="font-bold text-indigo-600">{user.targetJob}</span>.</p>
-          <button onClick={() => setCurrentStep(1)} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 mx-auto">
-            Mulai Tes <ArrowRight size={18}/>
-          </button>
-        </div>
-      )}
+    <div className="max-w-3xl mx-auto flex flex-col gap-6">
+      {/* Progress Bar */}
+      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+        <div
+          className="bg-indigo-600 h-full transition-all duration-500"
+          style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+        />
+      </div>
 
-      {/* 2. QUIZ SCREEN */}
-      {currentStep === 1 && (
-        <div className="bg-white p-8 rounded-3xl shadow-sm border">
-          <div className="flex justify-between items-center mb-6">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Pertanyaan {currentQuestion + 1} dari {questions.length}</span>
-            <div className="h-2 w-32 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-600 transition-all" style={{width: `${((currentQuestion+1)/questions.length)*100}%`}}></div>
-            </div>
-          </div>
-          
-          <h3 className="text-xl font-bold text-slate-800 mb-8">{questions[currentQuestion].question}</h3>
-          
-          <div className="space-y-3">
-            {questions[currentQuestion].options.map((opt, idx) => (
-              <button 
-                key={idx}
-                onClick={() => handleAnswer(idx)}
-                className="w-full p-4 text-left border-2 border-slate-100 rounded-2xl hover:border-indigo-500 hover:bg-indigo-50 transition-all font-medium"
+      {/* Info Progress */}
+      <p className="text-center text-sm text-slate-400">
+        Soal {currentIndex + 1} dari {questions.length}
+      </p>
+
+      <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100">
+        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider">
+          {currentQuestion.type === 'pg' ? '📝 Pilihan Ganda' : '🎤 AI Conversation'}
+        </span>
+
+        <h2 className="text-2xl font-bold text-slate-800 mt-4 mb-8">
+          {currentQuestion.type === 'pg'
+            ? currentQuestion.questionText
+            : currentQuestion.scenario}
+        </h2>
+
+        {/* MODE PILIHAN GANDA */}
+        {currentQuestion.type === 'pg' && (
+          <div className="flex flex-col gap-3">
+            {currentQuestion.options.map((opt, i) => (
+              <button
+                key={i}
+                onClick={() => handlePGAnswer(opt.score)}
+                className="w-full p-4 text-left border border-slate-200 rounded-2xl hover:border-indigo-600 hover:bg-indigo-50 transition-all flex justify-between group"
               >
-                {opt}
+                <span className="font-medium text-slate-700">{opt.text}</span>
+                <ChevronRight className="text-slate-300 group-hover:text-indigo-600" />
               </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 3. FINISHED SCREEN */}
-      {currentStep === 2 && (
-        <div className="bg-white p-8 rounded-3xl shadow-sm border text-center">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 size={32} />
+        {/* MODE CONVERSATION VOICE */}
+        {currentQuestion.type === 'conversation' && (
+          <div className="space-y-6">
+            <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center gap-4">
+              <button
+                onClick={startRecording}
+                disabled={isRecording}
+                className={`p-6 rounded-full transition-all ${
+                  isRecording
+                    ? 'bg-red-500 animate-pulse text-white'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {isRecording ? <MicOff size={32} /> : <Mic size={32} />}
+              </button>
+              <p className="text-sm font-medium text-slate-500">
+                {isRecording ? "🔴 Mendengarkan... (bicara sekarang)" : "Klik mic dan mulai bicara"}
+              </p>
+            </div>
+
+            {/* Tampilkan hasil transkripsi */}
+            {transcript && (
+              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                <p className="text-xs text-indigo-400 mb-1 font-semibold">Jawaban kamu:</p>
+                <p className="italic text-slate-700">"{transcript}"</p>
+                <button
+                  onClick={() => setTranscript("")}
+                  className="text-xs text-red-400 mt-2 hover:underline"
+                >
+                  Hapus & rekam ulang
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={submitVoiceAnswer}
+              disabled={!transcript || isAnalysing}
+              className="w-full py-4 bg-[#111827] text-white rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAnalysing
+                ? "⏳ AI sedang menilai jawaban..."
+                : <><Send size={18} /> Kirim & Nilai Jawaban</>
+              }
+            </button>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Tes Selesai!</h2>
-          <p className="text-slate-500 mb-6">Skor Anda telah dihitung dan disesuaikan dengan profil karir Anda. Silakan cek dashboard untuk melihat hasilnya.</p>
-          <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition-all">
-            Lihat Hasil di Dashboard
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

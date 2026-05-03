@@ -27,7 +27,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
         <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" />
         <NavItem icon={BookOpen} label="Join Class" id="lms" />
         <NavItem icon={Target} label="Direct Assessment" id="assessment" />
-        <NavItem icon={BarChart3} label="Analytics AI" id="analytics" />
+        <NavItem icon={BarChart3} label="Skill Radar" id="analytics" />
       </nav>
 
       {/* Logout Section - Nempel di bawah berkat flex-1 di nav */}
