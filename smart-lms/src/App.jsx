@@ -62,25 +62,31 @@ const App = () => {
     setIsAnalysing(true);
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-    const systemInstructions = "Anda adalah AI Career Expert dari Smart LMS UNNES. Analisis 10 aspek kompetensi mahasiswa sesuai target pekerjaan mereka.";
+    // REVISI 1: Instruksi lebih ketat mengenai skala 1-5
+    const systemInstructions = `Anda adalah AI Career Expert dari Smart LMS UNNES. 
+    Analisis 10 aspek kompetensi mahasiswa. 
+    PENTING: Skor yang diberikan adalah skala 1 sampai 5. 
+    JANGAN gunakan simbol persen (%) dalam tabel atau penjelasan. 
+    Gunakan format tabel Markdown untuk analisis kecocokan.`;
 
+    // REVISI 2: Hapus semua simbol % di userQuery
     const userQuery = `
       Nama: ${user.name}
       Target Pekerjaan: ${user.targetJob || "Belum ditentukan"}
       
-      Skor Aspek:
-      - Technical: ${user.skills.technical}%
-      - Communication: ${user.skills.communication}%
-      - Problem Solving: ${user.skills.problemSolving}%
-      - Leadership: ${user.skills.leadership}%
-      - Teamwork: ${user.skills.teamwork || 0}%
-      - Emotional Intel: ${user.skills.emotionalIntel || 0}%
-      - Digital Literacy: ${user.skills.digitalLiteracy || 0}%
-      - Critical Thinking: ${user.skills.criticalThinking || 0}%
-      - Attention to Detail: ${user.skills.attentionDetail || 0}%
-      - Work Ethic: ${user.skills.workEthic || 0}%
+      Skor Aspek (Skala 1-5):
+      - Technical: ${user.skills.technical}
+      - Communication: ${user.skills.communication}
+      - Problem Solving: ${user.skills.problemSolving}
+      - Leadership: ${user.skills.leadership}
+      - Teamwork: ${user.skills.teamwork || 0}
+      - Emotional Intel: ${user.skills.emotionalIntel || 0}
+      - Digital Literacy: ${user.skills.digitalLiteracy || 0}
+      - Critical Thinking: ${user.skills.criticalThinking || 0}
+      - Attention to Detail: ${user.skills.attentionDetail || 0}
+      - Work Ethic: ${user.skills.workEthic || 0}
 
-      Berikan analisis kecocokan untuk posisi ${user.targetJob} dan 1 saran perbaikan.
+      Berikan tabel analisis kecocokan untuk posisi ${user.targetJob} berdasarkan skor 1-5 tersebut dan berikan 1 saran perbaikan yang konkret.
     `;
 
     const models = [
