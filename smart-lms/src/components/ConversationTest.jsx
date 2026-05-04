@@ -2,9 +2,6 @@ import React, { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Mic, MicOff, Send, Loader2, ChevronRight, CheckCircle } from 'lucide-react';
-import { HfInference } from "@huggingface/inference";
-
-const hf = new HfInference(import.meta.env.VITE_HF_TOKEN);
 
 /**
  * ConversationTest
@@ -42,51 +39,54 @@ const ConversationTest = ({ user, questions = [], onComplete }) => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // ─── Recording ─────────────────────────────────────────────────────────────
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks = [];
-
-      recorder.ondataavailable = (e) => chunks.push(e.data);
-      recorder.onstop = async () => {
-        // Matikan semua track mic
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        await handleTranscription(blob);
-      };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-      setStatus("recording");
-    } catch {
-      alert("Akses mikrofon ditolak atau tidak ditemukan.");
+  // ─── Recording + STT: Web Speech API (bawaan browser, no API needed) ────────
+  const startRecording = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert("Browser kamu tidak mendukung speech recognition. Gunakan Chrome!");
+      return;
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = 'id-ID'; // ✅ Bahasa Indonesia
+    recognition.continuous = true; // ✅ Terus dengerin sampai di-stop
+    recognition.interimResults = false; // Hanya hasil final
+
+    let fullTranscript = "";
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          fullTranscript += event.results[i][0].transcript + " ";
+        }
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech error:", event.error);
+      if (event.error !== 'no-speech') {
+        alert(`Error mikrofon: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      // Dipanggil saat recognition berhenti (setelah stopRecording)
+      setTranscript(fullTranscript.trim() || "Tidak ada suara terdeteksi, coba lagi.");
+      setIsRecording(false);
+      setStatus("idle");
+    };
+
+    recognition.start();
+    mediaRecorderRef.current = recognition; // ✅ Simpan instance recognition
+    setIsRecording(true);
+    setStatus("recording");
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+      mediaRecorderRef.current.stop(); // ✅ Trigger onend → set transcript
       setStatus("transcribing");
-    }
-  };
-
-  // ─── STT: Whisper via HuggingFace ─────────────────────────────────────────
-  const handleTranscription = async (blob) => {
-    try {
-      const result = await hf.automaticSpeechRecognition({
-        model: 'openai/whisper-large-v3',
-        data: blob,
-      });
-      setTranscript(result.text || "Gagal menangkap suara.");
-    } catch (error) {
-      console.error("Whisper Error:", error);
-      setTranscript("Error transkripsi, coba lagi.");
-    } finally {
-      setStatus("idle");
     }
   };
 
@@ -134,6 +134,8 @@ const ConversationTest = ({ user, questions = [], onComplete }) => {
       "google/gemma-4-26b-a4b-it:free",
       "meta-llama/llama-3.3-70b-instruct:free",
       "google/gemma-3-27b-it:free",
+      "mistralai/mistral-7b-instruct:free",  // ✅ Ganti backup 2
+      "qwen/qwen3-8b:free", 
     ];
 
     const model = MODELS[Math.min(retryCount, MODELS.length - 1)];
@@ -181,7 +183,7 @@ OUTPUT WAJIB hanya JSON berikut, tanpa teks lain, tanpa markdown:
       });
 
       // Rate limit → coba model berikutnya
-      if ((response.status === 429 || response.status === 503) && retryCount < MODELS.length - 1) {
+      if ((response.status === 429 || response.status === 503 || response.status === 400) && retryCount < MODELS.length - 1) {
         console.warn(`Model ${model} overload (${response.status}), mencoba model berikutnya...`);
         await new Promise((res) => setTimeout(res, 2000));
         return submitAllToAI(answers, retryCount + 1);
