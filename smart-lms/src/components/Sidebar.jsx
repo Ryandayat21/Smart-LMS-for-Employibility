@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Target, BarChart3, BrainCircuit, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Target, BarChart3, BrainCircuit, LogOut, ClipboardList, Users } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   const NavItem = ({ icon: Icon, label, id }) => (
@@ -19,18 +19,36 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
       {/* Logo Section */}
       <div className="flex items-center gap-2 text-indigo-600 mb-8">
         <BrainCircuit size={28} />
-        <h1 className="text-xl font-bold tracking-tight">Skillvora</h1> {/* Sudah ganti nama jadi Skillvora nih! */}
+        <h1 className="text-xl font-bold tracking-tight">Skillvora</h1>
       </div>
 
       {/* Navigation Section */}
       <nav className="flex flex-col gap-2 flex-1">
+        {/* Menu Dashboard selalu muncul untuk semua orang */}
         <NavItem icon={LayoutDashboard} label="Dashboard" id="dashboard" />
-        <NavItem icon={BookOpen} label="Join Class" id="lms" />
-        <NavItem icon={Target} label="Direct Assessment" id="assessment" />
-        <NavItem icon={BarChart3} label="Skill Radar" id="analytics" />
+
+        {/* Cek role User: Tambahkan tanda tanya (?) dan pastikan string 'user' kecil semua */}
+        {(user?.role === 'user' || !user?.role) && (
+          <>
+            <NavItem icon={BookOpen} label="Join Class" id="lms" />
+            <NavItem icon={Target} label="Direct Assessment" id="assessment" />
+            <NavItem icon={BarChart3} label="Skill Radar" id="analytics" />
+          </>
+        )}
+
+        {/* Cek role Instructor */}
+        {user?.role === 'instructor' && (
+          <>
+            <div className="mt-4 mb-2 px-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instructor Menu</p>
+            </div>
+            <NavItem icon={ClipboardList} label="Kelola Soal" id="question-bank" />
+            <NavItem icon={Users} label="Hasil Mahasiswa" id="student-results" />
+          </>
+        )}
       </nav>
 
-      {/* Logout Section - Nempel di bawah berkat flex-1 di nav */}
+      {/* Logout Section */}
       <div className="pt-6 border-t border-slate-100">
         <button 
           onClick={onLogout}

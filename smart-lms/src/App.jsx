@@ -12,6 +12,7 @@ import Analytics from './pages/Analytics';
 import SetupProfile from './pages/SetupProfile';
 import Login from './pages/Login';
 import UserProfile from './pages/UserProfile';
+import QuestionBank from './pages/QuestionBank';
 
 const App = () => {
   // --- STATE UTAMA ---
@@ -157,7 +158,7 @@ const App = () => {
   // D. Tampilan Utama (Sudah Login & Punya Data)
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={user.role} onLogout={handleLogout} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
       <main className="flex-1 overflow-y-auto p-8">
         <div className="mb-6 flex justify-between items-end">
           <div>
@@ -181,6 +182,10 @@ const App = () => {
           />
         )}
         {activeTab === 'profile' && <UserProfile user={user} />}
+
+        {/* Tambahan untuk Instruktur */}
+        {activeTab === 'question-bank' && <QuestionBank user={user} />}
+        {activeTab === 'student-results' && <StudentResults user={user} />}
       </main>
     </div>
   );
