@@ -1,8 +1,13 @@
 import { auth, googleProvider, db } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
 
 const Login = () => {
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
+
   const loginGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -27,8 +32,25 @@ const Login = () => {
           }
         });
       }
+      // Reload to trigger auth state change
+      window.location.reload();
     } catch (error) {
       console.error("Login Gagal:", error);
+    }
+  };
+
+  const loginAdmin = async () => {
+    // Hardcoded admin credentials
+    const adminCreds = { username: 'admin', password: 'admin123' };
+    if (adminUsername === adminCreds.username && adminPassword === adminCreds.password) {
+      // Simulate admin login, set in localStorage
+      localStorage.setItem('adminLoggedIn', 'true');
+      localStorage.setItem('userRole', 'admin');
+      localStorage.setItem('userName', 'Admin');
+      // Reload to apply changes
+      window.location.reload();
+    } else {
+      alert('Username atau password admin salah');
     }
   };
 
@@ -78,6 +100,40 @@ const Login = () => {
           />
           Masuk dengan Google
         </button>
+
+        <div className="mt-4">
+          <button
+            onClick={() => setIsAdminLogin(!isAdminLogin)}
+            className="text-white/70 hover:text-white text-sm underline"
+          >
+            {isAdminLogin ? 'Batal Login Admin' : 'Login sebagai Admin'}
+          </button>
+        </div>
+
+        {isAdminLogin && (
+          <div className="mt-6">
+            <input
+              type="text"
+              placeholder="Username Admin"
+              value={adminUsername}
+              onChange={(e) => setAdminUsername(e.target.value)}
+              className="w-full px-4 py-2 mb-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+            />
+            <input
+              type="password"
+              placeholder="Password Admin"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              className="w-full px-4 py-2 mb-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
+            />
+            <button
+              onClick={loginAdmin}
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:scale-105 transition-all w-full"
+            >
+              Masuk sebagai Admin
+            </button>
+          </div>
+        )}
 
         <p className="text-xs text-white/50 mt-6">
           Dengan masuk, kamu menyetujui Terms & Privacy Policy
