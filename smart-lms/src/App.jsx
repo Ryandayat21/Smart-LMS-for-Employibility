@@ -7,6 +7,7 @@ import { signOut } from "firebase/auth";
 // Import Pages
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import Assessment from './pages/Assessment';
 import Analytics from './pages/Analytics';
 import SetupProfile from './pages/SetupProfile';
@@ -49,7 +50,16 @@ const App = () => {
         // Cleanup snapshot listener saat logout
         return () => unsubscribeSnapshot();
       } else {
-        setUser(null);
+        const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+        if (isAdmin) {
+          setUser({
+            role: 'admin',
+            name: localStorage.getItem('userName') || 'Admin',
+            isNew: false,
+          });
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       }
     });
@@ -134,7 +144,13 @@ const App = () => {
   // --- FUNGSI LOGOUT ---
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if (localStorage.getItem('adminLoggedIn') === 'true') {
+        localStorage.removeItem('adminLoggedIn');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+        setUser(null);
+      }
+      if (auth.currentUser) await signOut(auth);
       // Setelah logout, state 'user' di onAuthStateChanged 
       // akan otomatis jadi null, dan layar login bakal muncul sendiri.
       console.log("User berhasil keluar");
@@ -151,8 +167,8 @@ const App = () => {
   // B. Jika belum login (Nanti kita buat pages/Login.jsx)
   if (!user) return <Login />;
 
-  // C. Jika user baru (Belum isi data diri/target job)
-  if (user.isNew === true || !user.targetJob) {
+  // C. Jika user baru (Belum isi data diri/target job), kecuali admin
+  if ((user.isNew === true || !user.targetJob) && user.role !== 'admin') {
     return <SetupProfile user={user} />;
   }
 
@@ -168,19 +184,25 @@ const App = () => {
           </div>
           <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-pointer" onClick={() => setActiveTab('profile')}>
             <p className="font-bold text-slate-700">{user.name}</p>
-            <p className="text-xs text-indigo-600 font-medium">{user.role?.toUpperCase()} | {user.targetJob}</p>
+            <p className="text-xs text-indigo-600 font-medium">
+              {user.role?.toUpperCase()}{user.role !== 'admin' ? ` | ${user.targetJob}` : ''}
+            </p>
           </div>
         </div>
         {/* Konten Berdasarkan Tab */}
         {activeTab === 'assessment' && <Assessment user={user} />}
         {activeTab === 'analytics' && <Analytics user={user} />}
         {activeTab === 'dashboard' && (
-          <Dashboard 
-            user={user}
-            aiResult={aiResult}
-            isAnalysing={isAnalysing}
-            runAiAnalysis={runAiAnalysis}
-          />
+          user.role === 'admin' ? (
+            <AdminDashboard user={user} />
+          ) : (
+            <Dashboard 
+              user={user}
+              aiResult={aiResult}
+              isAnalysing={isAnalysing}
+              runAiAnalysis={runAiAnalysis}
+            />
+          )
         )}
         {activeTab === 'profile' && <UserProfile user={user} />}
 
