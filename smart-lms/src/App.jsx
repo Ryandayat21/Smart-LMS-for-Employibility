@@ -13,6 +13,7 @@ import SetupProfile from './pages/SetupProfile';
 import Login from './pages/Login';
 import UserProfile from './pages/UserProfile';
 import QuestionBank from './pages/QuestionBank';
+import StudentResults from './pages/StudentResults';
 
 const App = () => {
   // --- STATE UTAMA ---
@@ -185,7 +186,7 @@ const App = () => {
 
         {/* Tambahan untuk Instruktur */}
         {activeTab === 'question-bank' && <QuestionBank user={user} />}
-        {activeTab === 'student-results' && <StudentResults user={user} />}
+        {activeTab === 'student-results' && <StudentResults user="{user}"/>}
       </main>
     </div>
   );
