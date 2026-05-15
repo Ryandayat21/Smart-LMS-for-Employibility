@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase'; // Pastikan auth sudah diekspor di firebase.js
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 
 // Import Pages
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminSettings from './pages/AdminSettings';
+import AdminUsers from './pages/AdminUsers';
 import Assessment from './pages/Assessment';
 import Analytics from './pages/Analytics';
 import SetupProfile from './pages/SetupProfile';
 import Login from './pages/Login';
 import UserProfile from './pages/UserProfile';
 import QuestionBank from './pages/QuestionBank';
+
+const defaultSiteSettings = {
+  orgName: 'Skillvora',
+  orgLogo: '',
+  heroTitle: 'Build Your Future Career with AI 🚀',
+  heroSubtitle: 'Smart LMS membantu kamu memahami potensi skill, menemukan jalur karier terbaik, dan berkembang dengan analisis berbasis Artificial Intelligence.',
+  heroButtonText: 'Mulai Analisis Karier',
+};
 
 const App = () => {
   // --- STATE UTAMA ---
@@ -22,6 +32,17 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [aiResult, setAiResult] = useState("");
   const [isAnalysing, setIsAnalysing] = useState(false);
+  const [siteSettings, setSiteSettings] = useState(() => {
+    const stored = localStorage.getItem('siteSettings');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.warn('Invalid siteSettings in localStorage', e);
+      }
+    }
+    return defaultSiteSettings;
+  });
 
   // --- 1. MONITOR STATUS LOGIN (AUTH) ---
   useEffect(() => {
@@ -30,21 +51,45 @@ const App = () => {
       if (authUser) {
         // 2. Jika ada user login, pantau datanya di Firestore secara real-time
         const userRef = doc(db, "users", authUser.uid);
-        
-        const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            // Update state user setiap kali ada perubahan di Firestore (misal: habis submit test)
-            setUser({ uid: authUser.uid, ...docSnap.data() });
-          } else {
-            // Penanganan untuk user baru
-            setUser({ 
-              uid: authUser.uid, 
-              name: authUser.displayName || "User Baru", 
-              isNew: true 
-            });
-          }
-          setLoading(false);
-        });
+      const createMissingUserDoc = async () => {
+        const defaultUser = {
+          name: authUser.displayName || "User Baru",
+          email: authUser.email || "",
+          role: "user",
+          targetJob: "",
+          isNew: true,
+          skills: {
+            technical: 0,
+            digitalLiteracy: 0,
+            communication: 0,
+            leadership: 0,
+            teamwork: 0,
+            emotionalIntel: 0,
+            problemSolving: 0,
+            criticalThinking: 0,
+            attentionDetail: 0,
+            workEthic: 0,
+          },
+        };
+
+        try {
+          await setDoc(userRef, defaultUser);
+          setUser({ uid: authUser.uid, ...defaultUser });
+        } catch (error) {
+          console.error('Gagal membuat dokumen user default:', error);
+        }
+      };
+
+      const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = { uid: authUser.uid, ...docSnap.data() };
+          if (!userData.role) userData.role = 'user';
+          setUser(userData);
+        } else {
+          createMissingUserDoc();
+        }
+        setLoading(false);
+      });
 
         // Cleanup snapshot listener saat logout
         return () => unsubscribeSnapshot();
@@ -164,7 +209,7 @@ const App = () => {
   if (loading) return <div className="flex h-screen items-center justify-center">Memuat Smart LMS...</div>;
 
   // B. Jika belum login (Nanti kita buat pages/Login.jsx)
-  if (!user) return <Login />;
+  if (!user) return <Login siteSettings={siteSettings} />;
 
   // C. Jika user baru (Belum isi data diri/target job), kecuali admin
   if ((user.isNew === true || !user.targetJob) && user.role !== 'admin') {
@@ -174,7 +219,7 @@ const App = () => {
   // D. Tampilan Utama (Sudah Login & Punya Data)
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} siteSettings={siteSettings} />
       <main className="flex-1 overflow-y-auto p-8">
         <div className="mb-6 flex justify-between items-end">
           <div>
@@ -203,6 +248,16 @@ const App = () => {
             />
           )
         )}
+        {activeTab === 'site-settings' && user.role === 'admin' && (
+          <AdminSettings
+            settings={siteSettings}
+            onSave={(nextSettings) => {
+              localStorage.setItem('siteSettings', JSON.stringify(nextSettings));
+              setSiteSettings(nextSettings);
+            }}
+          />
+        )}
+        {activeTab === 'admin-users' && user.role === 'admin' && <AdminUsers />}
         {activeTab === 'profile' && <UserProfile user={user} />}
 
         {/* Tambahan untuk Instruktur */}
