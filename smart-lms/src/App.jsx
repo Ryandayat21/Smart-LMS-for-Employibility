@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase'; // Pastikan auth sudah diekspor di firebase.js
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 
 // Import Pages
@@ -18,6 +17,9 @@ import Login from './pages/Login';
 import UserProfile from './pages/UserProfile';
 import QuestionBank from './pages/QuestionBank';
 import StudentResults from './pages/StudentResults';
+import ClassManagement from './pages/ClassManagement';
+import JoinClass from './pages/LMS';
+import LMS from './pages/LMS';
 
 const defaultSiteSettings = {
   orgName: 'Skillvora',
@@ -254,6 +256,7 @@ const App = () => {
           </div>
         </div>
         {/* Konten Berdasarkan Tab */}
+        {activeTab === 'lms' && <LMS user={user} />}
         {activeTab === 'assessment' && <Assessment user={user} />}
         {activeTab === 'analytics' && <Analytics user={user} />}
         {activeTab === 'dashboard' && (
@@ -283,6 +286,7 @@ const App = () => {
         {/* Tambahan untuk Instruktur */}
         {activeTab === 'question-bank' && <QuestionBank user={user} />}
         {activeTab === 'student-results' && <StudentResults user={user} />}
+        {activeTab === 'class-management' && <ClassManagement user={user} />}
       </main>
     </div>
   );

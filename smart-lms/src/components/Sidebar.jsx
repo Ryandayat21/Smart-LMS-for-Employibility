@@ -44,6 +44,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, siteSettings }) => {
             <div className="mt-4 mb-2 px-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instructor Menu</p>
             </div>
+            <NavItem icon={BookOpen} label="Kelola Kelas" id="class-management" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={ClipboardList} label="Kelola Soal" id="question-bank" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={Users} label="Hasil Mahasiswa" id="student-results" activeTab={activeTab} setActiveTab={setActiveTab} />
           </>
