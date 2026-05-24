@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase'; // Pastikan auth sudah diekspor di firebase.js
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 
 // Import Pages
@@ -74,23 +74,21 @@ const App = () => {
     setIsAnalysing(true);
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-    // REVISI 1: Instruksi lebih ketat mengenai skala 1-5
     const systemInstructions = `Anda adalah AI Career Expert dari Smart LMS UNNES. 
     Analisis 10 aspek kompetensi mahasiswa. 
     PENTING: Skor yang diberikan adalah skala 1 sampai 5. 
     JANGAN gunakan simbol persen (%) dalam tabel atau penjelasan. 
     Gunakan format tabel Markdown untuk analisis kecocokan.`;
 
-    // REVISI 2: Hapus semua simbol % di userQuery
     const userQuery = `
       Nama: ${user.name}
       Target Pekerjaan: ${user.targetJob || "Belum ditentukan"}
       
       Skor Aspek (Skala 1-5):
-      - Technical: ${user.skills.technical}
-      - Communication: ${user.skills.communication}
-      - Problem Solving: ${user.skills.problemSolving}
-      - Leadership: ${user.skills.leadership}
+      - Technical: ${user.skills.technical || 0}
+      - Communication: ${user.skills.communication || 0}
+      - Problem Solving: ${user.skills.problemSolving || 0}
+      - Leadership: ${user.skills.leadership || 0}
       - Teamwork: ${user.skills.teamwork || 0}
       - Emotional Intel: ${user.skills.emotionalIntel || 0}
       - Digital Literacy: ${user.skills.digitalLiteracy || 0}
@@ -102,29 +100,28 @@ const App = () => {
     `;
 
     const models = [
-      "nvidia/nemotron-3-nano-30b-a3b:free",
-      "arcee-ai/trinity-large-preview:free",
-      "minimax/minimax-m2.5:free"
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "deepseek/deepseek-v4-flash:free",
     ];
 
-    // ... (Fungsi attemptFetch tetap sama seperti sebelumnya)
     const attemptFetch = async (modelName) => {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: modelName,
-            messages: [
-              { role: "system", content: systemInstructions },
-              { role: "user", content: userQuery }
-            ]
-          })
-        });
-        if (!response.ok) throw new Error("Gagal");
-        return await response.json();
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: systemInstructions },
+            { role: "user", content: userQuery }
+          ]
+        })
+      });
+      if (!response.ok) throw new Error(`Model ${modelName} gagal`);
+      return await response.json();
     };
 
     let success = false;
@@ -134,11 +131,32 @@ const App = () => {
         const data = await attemptFetch(model);
         const aiText = data.choices?.[0]?.message?.content;
         if (aiText) {
+          // ✅ Tampilkan di Dashboard
           setAiResult(aiText);
           success = true;
+
+          // ✅ Simpan ke Firestore collection "ai_summaries"
+          try {
+            const summaryRef = doc(db, "ai_summaries", user.uid);
+            await setDoc(summaryRef, {
+              uid: user.uid,
+              name: user.fullName || user.name,
+              targetJob: user.targetJob || "",
+              education: user.education || "",
+              skills: user.skills,
+              summary: aiText,
+              generatedAt: new Date(),
+            }, { merge: true });
+            console.log("✅ Rangkuman AI tersimpan ke Firestore!");
+          } catch (saveError) {
+            console.error("❌ Gagal simpan rangkuman:", saveError);
+          }
         }
-      } catch (e) { console.warn(e.message); }
+      } catch (e) {
+        console.warn(e.message);
+      }
     }
+
     setIsAnalysing(false);
   };
   // --- FUNGSI LOGOUT ---
@@ -208,7 +226,7 @@ const App = () => {
 
         {/* Tambahan untuk Instruktur */}
         {activeTab === 'question-bank' && <QuestionBank user={user} />}
-        {activeTab === 'student-results' && <StudentResults user="{user}"/>}
+        {activeTab === 'student-results' && <StudentResults user={user} />}
       </main>
     </div>
   );
