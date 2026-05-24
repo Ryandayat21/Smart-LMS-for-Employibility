@@ -3,10 +3,19 @@ import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 
-const Login = () => {
+const defaultSettings = {
+  orgName: 'Skillvora',
+  orgLogo: '',
+  heroTitle: 'Build Your Future Career with AI 🚀',
+  heroSubtitle: 'Smart LMS membantu kamu memahami potensi skill, menemukan jalur karier terbaik, dan berkembang dengan analisis berbasis Artificial Intelligence.',
+  heroButtonText: 'Mulai Analisis Karier',
+};
+
+const Login = ({ siteSettings }) => {
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const settings = siteSettings || defaultSettings;
 
   const loginGoogle = async () => {
     try {
@@ -59,16 +68,22 @@ const Login = () => {
 
     {/* LEFT SIDE */}
     <div className="hidden md:flex w-1/2 flex-col justify-center px-16 text-white">
-      <h1 className="text-5xl font-bold leading-tight">
-        Build Your Future <br /> Career with AI 🚀
-      </h1>
+        <div className="flex items-center gap-3 mb-8">
+          {settings.orgLogo ? (
+            <img src={settings.orgLogo} alt="Logo Organisasi" className="h-12 w-12 rounded-2xl object-cover border border-white/20" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-white">Logo</div>
+          )}
+          <p className="text-lg font-semibold uppercase tracking-[0.2em] text-white/80">{settings.orgName}</p>
+        </div>
 
-      <p className="mt-6 text-lg text-white/80">
-        Smart LMS membantu kamu memahami potensi skill,
-        menemukan jalur karier terbaik, dan berkembang
-        dengan analisis berbasis Artificial Intelligence.
-      </p>
+        <h1 className="text-5xl font-bold leading-tight">
+          {settings.heroTitle}
+        </h1>
 
+        <p className="mt-6 text-lg text-white/80">
+          {settings.heroSubtitle}
+        </p>
       <div className="mt-10 bg-white/10 p-6 rounded-xl backdrop-blur-md">
         <p className="text-sm">🤖 AI Insight:</p>
         <p className="mt-2 font-semibold">
