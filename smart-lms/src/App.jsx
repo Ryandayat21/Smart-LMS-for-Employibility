@@ -138,10 +138,20 @@ const App = () => {
   const runAiAnalysis = async () => {
     if (!user || !user.skills) return;
 
-    // Pastikan user telah menyelesaikan pre-test (setidaknya salah satu aspek > 0)
-    const hasCompletedAssessment = Object.values(user.skills).some(val => val > 0);
-    if (!hasCompletedAssessment) {
-      alert("Kamu belum menyelesaikan assessment. Selesaikan assessment terlebih dahulu!");
+    // Pastikan user telah menyelesaikan 4 milestone sebelumnya
+    const isPgDone = !!(user.skills && Object.values(user.skills).some(val => val > 0));
+    const isVoiceDone = !!(user.skills?.communication && user.skills.communication > 0);
+    const isProjectsDone = !!(user.projects && user.projects.length > 0);
+    const isCertsDone = !!(user.certifications && user.certifications.length > 0);
+
+    const incomplete = [];
+    if (!isPgDone) incomplete.push("Asesmen Awal (Pilihan Ganda)");
+    if (!isVoiceDone) incomplete.push("AI Voice Interview");
+    if (!isProjectsDone) incomplete.push("Portofolio Proyek");
+    if (!isCertsDone) incomplete.push("Sertifikasi Kompetensi");
+
+    if (incomplete.length > 0) {
+      alert(`Kamu belum dapat menjalankan Smart Analysis AI. Silakan selesaikan milestone berikut terlebih dahulu:\n\n${incomplete.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}`);
       return;
     }
     
@@ -281,7 +291,7 @@ const App = () => {
 
   // C. Jika user baru (Belum isi data diri/target job), kecuali admin
   if ((user.isNew === true || !user.targetJob) && user.role !== 'admin') {
-    return <SetupProfile user={user} onComplete={() => setActiveTab('assessment')} />;
+    return <SetupProfile user={user} onComplete={() => setActiveTab('assessment')} onLogout={handleLogout} />;
   }
 
   // D. Tampilan Utama (Sudah Login & Punya Data)

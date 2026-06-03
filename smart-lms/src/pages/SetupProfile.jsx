@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
-const SetupProfile = ({ user, onComplete }) => {
+const SetupProfile = ({ user, onComplete, onLogout }) => {
   const [formData, setFormData] = useState({
     fullName: user.name || "",
     targetJob: "",
@@ -157,10 +157,20 @@ const SetupProfile = ({ user, onComplete }) => {
           <button 
             type="submit"
             disabled={issubmitting}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:bg-slate-400"
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:bg-slate-400 cursor-pointer"
           >
             {issubmitting ? "Menyimpan..." : "Simpan & Lanjut ke Dashboard"}
           </button>
+
+          {onLogout && (
+            <button 
+              type="button"
+              onClick={onLogout}
+              className="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 py-3 rounded-xl font-semibold border border-slate-200 transition-colors mt-2 cursor-pointer text-sm text-center"
+            >
+              Keluar / Ganti Akun
+            </button>
+          )}
         </form>
       </div>
     </div>
