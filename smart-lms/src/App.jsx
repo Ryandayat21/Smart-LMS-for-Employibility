@@ -18,8 +18,8 @@ import UserProfile from './pages/UserProfile';
 import QuestionBank from './pages/QuestionBank';
 import StudentResults from './pages/StudentResults';
 import ClassManagement from './pages/ClassManagement';
-import JoinClass from './pages/LMS';
 import LMS from './pages/LMS';
+import PrintRoadmap from './components/PrintRoadmap';
 
 const defaultSiteSettings = {
   orgName: 'Skillvora',
@@ -36,6 +36,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [aiResult, setAiResult] = useState("");
   const [isAnalysing, setIsAnalysing] = useState(false);
+  const [profileAction, setProfileAction] = useState(null);
   const [siteSettings, setSiteSettings] = useState(() => {
     const stored = localStorage.getItem('siteSettings');
     if (stored) {
@@ -115,24 +116,63 @@ const App = () => {
     return () => unsubscribeAuth();
   }, []);
 
-  // --- 2. FUNGSI AI (UPDATE TERBARU) ---
+  // --- 2. LOAD AI RESULT DARI FIRESTORE ---
+  useEffect(() => {
+    const loadAiResult = async () => {
+      if (user?.uid) {
+        try {
+          const summaryRef = doc(db, "ai_summaries", user.uid);
+          const snap = await getDoc(summaryRef);
+          if (snap.exists() && snap.data().summary) {
+            setAiResult(snap.data().summary);
+          }
+        } catch (e) {
+          console.error("Gagal memuat rangkuman AI:", e);
+        }
+      }
+    };
+    loadAiResult();
+  }, [user?.uid]);
+
+  // --- 3. FUNGSI AI (UPDATE TERBARU) ---
   const runAiAnalysis = async () => {
     if (!user || !user.skills) return;
+
+    // Pastikan user telah menyelesaikan pre-test (setidaknya salah satu aspek > 0)
+    const hasCompletedAssessment = Object.values(user.skills).some(val => val > 0);
+    if (!hasCompletedAssessment) {
+      alert("Kamu belum menyelesaikan assessment. Selesaikan assessment terlebih dahulu!");
+      return;
+    }
     
     setIsAnalysing(true);
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
     const systemInstructions = `Anda adalah AI Career Expert dari Smart LMS UNNES. 
-    Analisis 10 aspek kompetensi mahasiswa. 
+    Analisis 10 aspek kompetensi mahasiswa secara sangat ringkas, padat, dan langsung pada poinnya.
     PENTING: Skor yang diberikan adalah skala 1 sampai 5. 
     JANGAN gunakan simbol persen (%) dalam tabel atau penjelasan. 
-    Gunakan format tabel Markdown untuk analisis kecocokan.`;
+    Gunakan format tabel Markdown untuk analisis kecocokan.
+    
+    Wajib membungkus setiap bagian keluaran Anda tepat di dalam tag XML berikut (tanpa salam pembuka/penutup lainnya di luar tag ini):
+    <kecocokan>
+    (Tabel analisis kecocokan kompetensi aktual vs target posisi 1-5 saja, tanpa persen)
+    </kecocokan>
+    <rekomendasi>
+    (Daftar poin rekomendasi skill/kompetensi kritis yang perlu ditingkatkan berdasarkan gap)
+    </rekomendasi>
+    <keselarasan>
+    (Analisis singkat keselarasan target karir dengan proyek & sertifikasi, serta saran alternatif karir jika diperlukan)
+    </keselarasan>`;
+
+    const certsText = (user.certifications || []).map((c) => `- ${c.title} (Penerbit: ${c.issuer}, Skill: ${c.skills?.join(', ') || '-'})`).join('\n');
+    const projsText = (user.projects || []).map((p) => `- ${p.name}: ${p.description} (Skill: ${p.skills?.join(', ') || '-'}, Link: ${p.link || '-'})`).join('\n');
 
     const userQuery = `
       Nama: ${user.name}
       Target Pekerjaan: ${user.targetJob || "Belum ditentukan"}
       
-      Skor Aspek (Skala 1-5):
+      Skor Aspek Kompetensi (Skala 1-5):
       - Technical: ${user.skills.technical || 0}
       - Communication: ${user.skills.communication || 0}
       - Problem Solving: ${user.skills.problemSolving || 0}
@@ -144,7 +184,13 @@ const App = () => {
       - Attention to Detail: ${user.skills.attentionDetail || 0}
       - Work Ethic: ${user.skills.workEthic || 0}
 
-      Berikan tabel analisis kecocokan untuk posisi ${user.targetJob} berdasarkan skor 1-5 tersebut dan berikan 1 saran perbaikan yang konkret.
+      Sertifikasi yang Dimiliki:
+      ${certsText || "Belum mengunggah sertifikasi."}
+
+      Projek Portofolio yang Dimiliki:
+      ${projsText || "Belum mengunggah projek portofolio."}
+
+      Berdasarkan data profil di atas, berikan analisis ringkas dalam Bahasa Indonesia yang dibungkus dengan tag XML <kecocokan>, <rekomendasi>, dan <keselarasan> sesuai instruksi system.
     `;
 
     const models = [
@@ -235,60 +281,76 @@ const App = () => {
 
   // C. Jika user baru (Belum isi data diri/target job), kecuali admin
   if ((user.isNew === true || !user.targetJob) && user.role !== 'admin') {
-    return <SetupProfile user={user} />;
+    return <SetupProfile user={user} onComplete={() => setActiveTab('assessment')} />;
   }
 
   // D. Tampilan Utama (Sudah Login & Punya Data)
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} siteSettings={siteSettings} />
-      <main className="flex-1 overflow-y-auto p-8">
-        <div className="mb-6 flex justify-between items-end">
-          <div>
-            <p className="text-sm text-slate-500 uppercase tracking-wider">Halaman</p>
-            <h2 className="text-3xl font-extrabold capitalize text-slate-800">{activeTab}</h2>
+    <>
+      {/* Main Application Layout (Hidden during print) */}
+      <div className="flex h-screen bg-slate-50 print:hidden">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} siteSettings={siteSettings} />
+        <main className="flex-1 overflow-y-auto p-8">
+          <div className="mb-6 flex justify-between items-end">
+            <div>
+              <p className="text-sm text-slate-500 uppercase tracking-wider">Halaman</p>
+              <h2 className="text-3xl font-extrabold capitalize text-slate-800">{activeTab}</h2>
+            </div>
+            <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-pointer" onClick={() => setActiveTab('profile')}>
+              <p className="font-bold text-slate-700">{user.name}</p>
+              <p className="text-xs text-indigo-600 font-medium">
+                {user.role?.toUpperCase()}{user.role !== 'admin' ? ` | ${user.targetJob}` : ''}
+              </p>
+            </div>
           </div>
-          <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-pointer" onClick={() => setActiveTab('profile')}>
-            <p className="font-bold text-slate-700">{user.name}</p>
-            <p className="text-xs text-indigo-600 font-medium">
-              {user.role?.toUpperCase()}{user.role !== 'admin' ? ` | ${user.targetJob}` : ''}
-            </p>
-          </div>
-        </div>
-        {/* Konten Berdasarkan Tab */}
-        {activeTab === 'lms' && <LMS user={user} />}
-        {activeTab === 'assessment' && <Assessment user={user} />}
-        {activeTab === 'analytics' && <Analytics user={user} />}
-        {activeTab === 'dashboard' && (
-          user.role === 'admin' ? (
-            <AdminDashboard user={user} />
-          ) : (
-            <Dashboard 
-              user={user}
-              aiResult={aiResult}
-              isAnalysing={isAnalysing}
-              runAiAnalysis={runAiAnalysis}
+          {/* Konten Berdasarkan Tab */}
+          {activeTab === 'lms' && <LMS user={user} />}
+          {activeTab === 'assessment' && <Assessment user={user} setActiveTab={setActiveTab} />}
+          {activeTab === 'analytics' && <Analytics user={user} />}
+          {activeTab === 'dashboard' && (
+            user.role === 'admin' ? (
+              <AdminDashboard user={user} />
+            ) : (
+              <Dashboard 
+                user={user}
+                aiResult={aiResult}
+                isAnalysing={isAnalysing}
+                runAiAnalysis={runAiAnalysis}
+                setActiveTab={setActiveTab}
+                setProfileAction={setProfileAction}
+              />
+            )
+          )}
+          {activeTab === 'site-settings' && user.role === 'admin' && (
+            <AdminSettings
+              settings={siteSettings}
+              onSave={(nextSettings) => {
+                localStorage.setItem('siteSettings', JSON.stringify(nextSettings));
+                setSiteSettings(nextSettings);
+              }}
             />
-          )
-        )}
-        {activeTab === 'site-settings' && user.role === 'admin' && (
-          <AdminSettings
-            settings={siteSettings}
-            onSave={(nextSettings) => {
-              localStorage.setItem('siteSettings', JSON.stringify(nextSettings));
-              setSiteSettings(nextSettings);
-            }}
-          />
-        )}
-        {activeTab === 'admin-users' && user.role === 'admin' && <AdminUsers />}
-        {activeTab === 'profile' && <UserProfile user={user} />}
+          )}
+          {activeTab === 'admin-users' && user.role === 'admin' && <AdminUsers />}
+          {activeTab === 'profile' && (
+            <UserProfile 
+              user={user} 
+              profileAction={profileAction} 
+              setProfileAction={setProfileAction} 
+            />
+          )}
 
-        {/* Tambahan untuk Instruktur */}
-        {activeTab === 'question-bank' && <QuestionBank user={user} />}
-        {activeTab === 'student-results' && <StudentResults user={user} />}
-        {activeTab === 'class-management' && <ClassManagement user={user} />}
-      </main>
-    </div>
+          {/* Tambahan untuk Instruktur */}
+          {activeTab === 'question-bank' && <QuestionBank user={user} />}
+          {activeTab === 'student-results' && <StudentResults user={user} />}
+          {activeTab === 'class-management' && <ClassManagement user={user} />}
+        </main>
+      </div>
+
+      {/* Print PDF Template (Visible only during print) */}
+      <div className="hidden print:block bg-white min-h-screen">
+        <PrintRoadmap user={user} aiResult={aiResult} siteSettings={siteSettings} />
+      </div>
+    </>
   );
 };
 

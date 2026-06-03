@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
-const SetupProfile = ({ user }) => {
+const SetupProfile = ({ user, onComplete }) => {
   const [formData, setFormData] = useState({
     fullName: user.name || "",
     targetJob: "",
@@ -29,6 +29,9 @@ const SetupProfile = ({ user }) => {
 
     setIsSubmitting(true);
     try {
+      if (onComplete) {
+        onComplete();
+      }
       const docRef = doc(db, "users", user.uid);
       await updateDoc(docRef, {
         name: formData.fullName,
@@ -41,9 +44,6 @@ const SetupProfile = ({ user }) => {
         email: formData.email,
         isNew: false // Tandai bahwa user sudah selesai setup
       });
-      
-      // Refresh halaman agar App.jsx mendeteksi perubahan data user
-      window.location.reload();
     } catch (error) {
       console.error("Error updating profile:", error);
     } finally {

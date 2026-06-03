@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { CheckCircle2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck } from 'lucide-react';
 import ConversationTest from "../components/ConversationTest";
 
-const Assessment = ({ user }) => {
+const Assessment = ({ user, setActiveTab }) => {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+
+  // ✅ Layar instruksi & konfirmasi
+  const [isStarted, setIsStarted] = useState(false);
+  const [isAgreed, setIsAgreed] = useState(false);
 
   // ✅ Pisahkan soal PG dan conversation
   const pgQuestions = questions.filter(q => q.type === 'pg');
@@ -71,13 +75,104 @@ const Assessment = ({ user }) => {
     <div className="p-10 text-center text-slate-500">Memuat Soal... ⏳</div>
   );
 
+  // ✅ Layar panduan & konfirmasi persiapan ujian sebelum dimulai
+  if (!isStarted) {
+    return (
+      <div className="max-w-2xl mx-auto bg-white p-8 sm:p-10 rounded-3xl shadow-sm border border-slate-100 space-y-8 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-xs">
+            <ClipboardList size={32} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Konfirmasi Persiapan Asesmen</h2>
+            <p className="text-slate-500 text-sm mt-1">
+              Selamat datang di sistem asesmen kompetensi kerja AI. Harap persiapkan diri Anda sebelum memulai pengerjaan.
+            </p>
+          </div>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pilihan Ganda</span>
+            <span className="text-base font-bold text-slate-800">{pgQuestions.length} Butir Soal</span>
+          </div>
+          <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AI Conversation</span>
+            <span className="text-base font-bold text-slate-800">{conversationQuestions.length} Butir Kasus</span>
+          </div>
+          <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Kompetensi</span>
+            <span className="text-base font-bold text-indigo-600 capitalize">{user?.targetJob ? user.targetJob.replace('-', ' ') : 'Umum'}</span>
+          </div>
+          <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Durasi Pengerjaan</span>
+            <span className="text-base font-bold text-slate-800">Mandiri (Self-paced)</span>
+          </div>
+        </div>
+
+        {/* Rules List */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-slate-800 text-sm">Ketentuan & Panduan Ujian:</h3>
+          <ul className="space-y-3 text-xs text-slate-600">
+            <li className="flex gap-2.5 items-start">
+              <span className="flex p-0.5 rounded-full bg-indigo-50 text-indigo-600 mt-0.5"><Sparkles size={12} /></span>
+              <span><strong>Navigasi Sekuensial:</strong> Jawaban pilihan ganda akan langsung disimpan begitu Anda memilih opsi, dan soal berikutnya akan dimuat otomatis.</span>
+            </li>
+            <li className="flex gap-2.5 items-start">
+              <span className="flex p-0.5 rounded-full bg-indigo-50 text-indigo-600 mt-0.5"><Sparkles size={12} /></span>
+              <span><strong>AI Conversation (Verbal):</strong> Setelah soal PG habis, Anda akan menjawab kasus secara verbal lewat audio. Pastikan izin mikrofon browser aktif.</span>
+            </li>
+            <li className="flex gap-2.5 items-start">
+              <span className="flex p-0.5 rounded-full bg-indigo-50 text-indigo-600 mt-0.5"><Sparkles size={12} /></span>
+              <span><strong>Analisis Real-Time:</strong> Selesai ujian, data kompetensi dan visualisasi radar kompetensi Anda akan langsung terupdate di dashboard.</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Academic Integrity Pledge Checkbox */}
+        <div className="flex items-start gap-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+          <input
+            id="integrity-pledge"
+            type="checkbox"
+            checked={isAgreed}
+            onChange={(e) => setIsAgreed(e.target.checked)}
+            className="h-4 w-4 mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer"
+          />
+          <label htmlFor="integrity-pledge" className="text-xs text-amber-900 leading-relaxed cursor-pointer select-none">
+            <strong>Pakta Integritas:</strong> Saya menyatakan akan mengerjakan asesmen mandiri ini dengan jujur dan sungguh-sungguh tanpa bantuan orang lain demi hasil rekomendasi karir AI yang akurat.
+          </label>
+        </div>
+
+        {/* Action Button */}
+        <button
+          onClick={() => setIsStarted(true)}
+          disabled={!isAgreed}
+          className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-sm"
+        >
+          <ShieldCheck size={18} />
+          Mulai Ujian Sekarang
+        </button>
+      </div>
+    );
+  }
+
   if (isFinished) return (
-    <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl shadow-sm text-center">
-      <CheckCircle2 size={64} className="text-green-500 mb-4" />
-      <h2 className="text-2xl font-bold">Assessment Selesai! 🎉</h2>
-      <p className="text-slate-500 mb-6">
-        Skor kompetensi kamu telah disimpan. Cek hasilnya di halaman Analytics!
+    <div className="flex flex-col items-center justify-center p-20 bg-white rounded-3xl shadow-sm text-center max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+      <CheckCircle2 size={64} className="text-green-500" />
+      <h2 className="text-2xl font-bold text-slate-800">Assessment Selesai! 🎉</h2>
+      <p className="text-slate-500 text-sm max-w-md mx-auto">
+        Skor kompetensi Anda telah disimpan secara otomatis. Langkah selanjutnya adalah melengkapi portofolio proyek di halaman Dashboard Anda.
       </p>
+      <button
+        onClick={() => {
+          if (setActiveTab) setActiveTab('dashboard');
+        }}
+        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm transition-all hover:shadow-lg hover:shadow-indigo-100 flex items-center gap-2 cursor-pointer"
+      >
+        Lanjut ke Dashboard (Unggah Proyek)
+      </button>
     </div>
   );
 

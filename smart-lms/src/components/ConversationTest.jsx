@@ -131,11 +131,11 @@ const ConversationTest = ({ user, questions = [], onComplete }) => {
     const allAspects = [...new Set(answers.flatMap((a) => a.targetedAspects))];
 
     const MODELS = [
-      "google/gemma-4-26b-a4b-it:free",
-      "meta-llama/llama-3.3-70b-instruct:free",
+      "openrouter/free",
       "google/gemma-3-27b-it:free",
-      "mistralai/mistral-7b-instruct:free",  // ✅ Ganti backup 2
-      "qwen/qwen3-8b:free", 
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "deepseek/deepseek-r1:free",
+      "qwen/qwen-2.5-7b-instruct:free"
     ];
 
     const model = MODELS[Math.min(retryCount, MODELS.length - 1)];
@@ -198,8 +198,20 @@ OUTPUT WAJIB hanya JSON berikut, tanpa teks lain, tanpa markdown:
 
       if (!rawContent) throw new Error("AI tidak memberikan respons valid.");
 
-      const cleanedJson = rawContent.replace(/```json|```/g, '').trim();
-      const content = JSON.parse(cleanedJson);
+      // Bersihkan pemikiran AI (<think>...</think>) jika ada (misal dari model reasoning DeepSeek)
+      let cleanText = rawContent.replace(/<think>[\s\S]*?<\/think>/g, "");
+      
+      // Bersihkan codeblock markdown ```json atau ```
+      cleanText = cleanText.replace(/```json|```/g, "").trim();
+
+      // Ekstrak blok JSON antara { pertama dan } terakhir
+      const firstBrace = cleanText.indexOf('{');
+      const lastBrace = cleanText.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1) {
+        throw new Error("Format JSON tidak ditemukan dalam respons AI.");
+      }
+      const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
+      const content = JSON.parse(jsonString);
 
       // Simpan hasil ke Firestore
       const userRef = doc(db, "users", user.uid);

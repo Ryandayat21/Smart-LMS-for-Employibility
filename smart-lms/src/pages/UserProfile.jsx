@@ -3,7 +3,7 @@ import Dashboard from "./Dashboard";
 import { db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 
-const UserProfile = ({ user }) => {
+const UserProfile = ({ user, profileAction, setProfileAction }) => {
   const [activeTab, setActiveTab] = useState("certifications");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +30,19 @@ const UserProfile = ({ user }) => {
       });
     }
   }, [user]);
+
+  // Handle deep-linked action requests from dashboard milestones
+  useEffect(() => {
+    if (profileAction === 'add_project') {
+      setActiveTab('projects');
+      setShowProjModal(true);
+      if (setProfileAction) setProfileAction(null);
+    } else if (profileAction === 'add_certification') {
+      setActiveTab('certifications');
+      setShowCertModal(true);
+      if (setProfileAction) setProfileAction(null);
+    }
+  }, [profileAction, setProfileAction]);
 
   // ===== HANDLE INPUT =====
   const handleChange = (e) => {
