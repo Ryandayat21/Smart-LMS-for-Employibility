@@ -2,6 +2,7 @@ import { auth, googleProvider, db } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
+import { BrainCircuit, Sparkles, User, Lock, ArrowRight, Shield } from 'lucide-react';
 
 const defaultSettings = {
   orgName: 'Skillvora',
@@ -64,98 +65,206 @@ const Login = ({ siteSettings }) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-linear-to-br from-indigo-600 via-purple-600 to-indigo-800">
+    <div className="min-h-screen flex bg-slate-50 relative overflow-hidden font-sans">
+      {/* Ambient background glows */}
+      <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-    {/* LEFT SIDE */}
-    <div className="hidden md:flex w-1/2 flex-col justify-center px-16 text-white">
-        <div className="flex items-center gap-3 mb-8">
+      {/* LEFT SIDE: Branding and Mockup Info */}
+      <div className="hidden md:flex w-1/2 flex-col justify-between p-16 z-10 relative border-r border-slate-100">
+        {/* Branding */}
+        <div className="flex items-center gap-3">
           {settings.orgLogo ? (
-            <img src={settings.orgLogo} alt="Logo Organisasi" className="h-12 w-12 rounded-2xl object-cover border border-white/20" />
+            <img 
+              src={settings.orgLogo} 
+              alt="Logo Organisasi" 
+              className="h-10 w-10 rounded-xl object-cover border border-slate-200/80 shadow-sm" 
+            />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-white">Logo</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-200">
+              <BrainCircuit size={22} />
+            </div>
           )}
-          <p className="text-lg font-semibold uppercase tracking-[0.2em] text-white/80">{settings.orgName}</p>
+          <span className="text-sm font-bold uppercase tracking-wider text-slate-800">{settings.orgName}</span>
         </div>
 
-        <h1 className="text-5xl font-bold leading-tight">
-          {settings.heroTitle}
-        </h1>
+        {/* Hero Text and AI Mockup Card */}
+        <div className="my-auto max-w-lg space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight text-slate-900 tracking-tight">
+              {settings.heroTitle.replace("AI 🚀", "")}
+              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">AI 🚀</span>
+            </h1>
+            <p className="text-slate-600 text-base lg:text-lg leading-relaxed">
+              {settings.heroSubtitle}
+            </p>
+          </div>
 
-        <p className="mt-6 text-lg text-white/80">
-          {settings.heroSubtitle}
-        </p>
-      <div className="mt-10 bg-white/10 p-6 rounded-xl backdrop-blur-md">
-        <p className="text-sm">🤖 AI Insight:</p>
-        <p className="mt-2 font-semibold">
-          "Skill communication tinggi → cocok ke Product Manager"
-        </p>
+          {/* Mini Mockup Card */}
+          <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-lg border border-slate-100/80 space-y-4 transition-all duration-300 hover:shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex p-1.5 rounded-lg bg-indigo-50 text-indigo-600">
+                  <Sparkles size={16} />
+                </span>
+                <span className="text-xs font-bold text-slate-700">AI Career Recommendation</span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                94% Match
+              </span>
+            </div>
+            
+            {/* Quote Insight */}
+            <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
+              <p className="text-xs font-semibold text-indigo-600">🤖 AI Recommendation Insight:</p>
+              <p className="mt-1 font-semibold text-slate-700 text-sm leading-relaxed">
+                "Berdasarkan tingkat komunikasi & problem solving Anda yang tinggi, Anda sangat cocok untuk posisi Product Manager."
+              </p>
+            </div>
+
+            {/* Small Visuals */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span>Core Competencies</span>
+                <span>Ready for Industry</span>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-600 rounded-full" style={{ width: '85%' }}></div>
+                </div>
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-purple-600 rounded-full" style={{ width: '70%' }}></div>
+                </div>
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '90%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Left */}
+        <div className="text-xs text-slate-400">
+          &copy; {new Date().getFullYear()} {settings.orgName}. Hak Cipta Dilindungi.
+        </div>
       </div>
-    </div>
 
-    {/* RIGHT SIDE */}
-    <div className="flex w-full md:w-1/2 items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-xl p-10 rounded-2xl shadow-2xl text-center border border-white/20 w-87.5">
+      {/* RIGHT SIDE: Interactive Login Panel */}
+      <div className="flex w-full md:w-1/2 items-center justify-center p-6 z-10">
+        <div className="bg-white/90 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl border border-slate-100 w-full max-w-md space-y-6">
+          
+          {/* Header Info */}
+          <div className="text-center space-y-2">
+            {/* Mobile Branding (only show on mobile screens) */}
+            <div className="md:hidden flex items-center justify-center gap-2 mb-6">
+              {settings.orgLogo ? (
+                <img 
+                  src={settings.orgLogo} 
+                  alt="Logo" 
+                  className="h-8 w-8 rounded-lg object-cover border border-slate-200" 
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                  <BrainCircuit size={18} />
+                </div>
+              )}
+              <span className="text-sm font-bold uppercase tracking-wider text-slate-800">{settings.orgName}</span>
+            </div>
 
-        <h2 className="text-2xl font-bold text-white">
-          Masuk ke Smart LMS
-        </h2>
+            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Masuk ke Smart LMS
+            </h2>
+            <p className="text-slate-500 text-sm">
+              Mulai analisis karier dan tingkatkan kompetensi Anda sekarang
+            </p>
+          </div>
 
-        <p className="text-white/70 mt-2 mb-6">
-          Mulai analisis karier kamu sekarang
-        </p>
-
-        <button
-          onClick={loginGoogle}
-          className="bg-white text-slate-800 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-3 hover:scale-105 transition-all w-full"
-        >
-          <img
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-            alt="google"
-            className="w-5"
-          />
-          Masuk dengan Google
-        </button>
-
-        <div className="mt-4">
+          {/* Google Login Button */}
           <button
-            onClick={() => setIsAdminLogin(!isAdminLogin)}
-            className="text-white/70 hover:text-white text-sm underline"
+            onClick={loginGoogle}
+            className="w-full bg-white text-slate-700 border border-slate-200 hover:border-indigo-200 hover:bg-slate-50 px-6 py-3.5 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-all duration-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.01]"
           >
-            {isAdminLogin ? 'Batal Login Admin' : 'Login sebagai Admin'}
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="google"
+              className="w-5 h-5"
+            />
+            <span>Masuk dengan Google</span>
           </button>
-        </div>
 
-        {isAdminLogin && (
-          <div className="mt-6">
-            <input
-              type="text"
-              placeholder="Username Admin"
-              value={adminUsername}
-              onChange={(e) => setAdminUsername(e.target.value)}
-              className="w-full px-4 py-2 mb-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
-            />
-            <input
-              type="password"
-              placeholder="Password Admin"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              className="w-full px-4 py-2 mb-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30"
-            />
+          {/* Divider */}
+          <div className="flex items-center justify-center gap-3 my-4">
+            <div className="h-px bg-slate-200 flex-1"></div>
+            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">atau</span>
+            <div className="h-px bg-slate-200 flex-1"></div>
+          </div>
+
+          {/* Admin Login Trigger */}
+          <div className="text-center">
             <button
-              onClick={loginAdmin}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:scale-105 transition-all w-full"
+              onClick={() => setIsAdminLogin(!isAdminLogin)}
+              className="text-indigo-600 hover:text-indigo-700 text-xs font-semibold hover:underline flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
-              Masuk sebagai Admin
+              <Shield size={14} />
+              {isAdminLogin ? 'Kembali ke Login User' : 'Masuk sebagai Administrator'}
             </button>
           </div>
-        )}
 
-        <p className="text-xs text-white/50 mt-6">
-          Dengan masuk, kamu menyetujui Terms & Privacy Policy
-        </p>
+          {/* Admin Login Form */}
+          {isAdminLogin && (
+            <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Username Admin</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                    <User size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Masukkan username admin"
+                    value={adminUsername}
+                    onChange={(e) => setAdminUsername(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Password Admin</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type="password"
+                    placeholder="Masukkan password admin"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={loginAdmin}
+                className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200/50 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
+              >
+                <span>Masuk Admin</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Terms & Privacy */}
+          <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+            Dengan masuk ke aplikasi, Anda menyetujui<br />
+            <span className="font-semibold text-slate-500 hover:underline cursor-pointer">Ketentuan Layanan</span> dan <span className="font-semibold text-slate-500 hover:underline cursor-pointer">Kebijakan Privasi</span> kami.
+          </p>
+          
+        </div>
       </div>
     </div>
-  </div>
   );
 };
 

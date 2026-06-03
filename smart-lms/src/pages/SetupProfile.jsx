@@ -6,7 +6,11 @@ const SetupProfile = ({ user }) => {
   const [formData, setFormData] = useState({
     fullName: user.name || "",
     targetJob: "",
-    bio: ""
+    bio: "",
+    age: "",
+    education: "",
+    phone: "",
+    email: user.email || ""
   });
   const [issubmitting, setIsSubmitting] = useState(false);
 
@@ -28,8 +32,13 @@ const SetupProfile = ({ user }) => {
       const docRef = doc(db, "users", user.uid);
       await updateDoc(docRef, {
         name: formData.fullName,
+        fullName: formData.fullName,
         targetJob: formData.targetJob,
         bio: formData.bio,
+        age: formData.age,
+        education: formData.education,
+        phone: formData.phone,
+        email: formData.email,
         isNew: false // Tandai bahwa user sudah selesai setup
       });
       
@@ -43,48 +52,101 @@ const SetupProfile = ({ user }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white max-w-md w-full rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 py-8">
+      <div className="bg-white max-w-md w-full rounded-2xl shadow-xl p-8 my-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-800">Lengkapi Profilmu</h2>
           <p className="text-slate-500 text-sm">Data ini diperlukan untuk personalisasi assessment AI</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Nama Lengkap */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
             <input 
               type="text" 
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
               value={formData.fullName}
               onChange={(e) => setFormData({...formData, fullName: e.target.value})}
             />
           </div>
 
-          {/* Target Job */}
+          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Pekerjaan yang Diinginkan</label>
-            <select 
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input 
+              type="email" 
               required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-              value={formData.targetJob}
-              onChange={(e) => setFormData({...formData, targetJob: e.target.value})}
-            >
-              <option value="">-- Pilih Pekerjaan --</option>
-              {jobs.map(job => (
-                <option key={job.id} value={job.id}>{job.label}</option>
-              ))}
-            </select>
-            <p className="text-[10px] text-slate-400 mt-1">*Penilaian akan disesuaikan dengan standar posisi ini</p>
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+
+          {/* Nomor HP */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nomor HP</label>
+            <input 
+              type="tel" 
+              required
+              placeholder="Contoh: 08123456789"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+              value={formData.phone}
+              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Umur */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Umur</label>
+              <input 
+                type="number" 
+                required
+                placeholder="Contoh: 21"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                value={formData.age}
+                onChange={(e) => setFormData({...formData, age: e.target.value})}
+              />
+            </div>
+
+            {/* Target Job */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Pekerjaan Impian</label>
+              <select 
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                value={formData.targetJob}
+                onChange={(e) => setFormData({...formData, targetJob: e.target.value})}
+              >
+                <option value="">-- Pilih --</option>
+                {jobs.map(job => (
+                  <option key={job.id} value={job.id}>{job.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Pendidikan */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Pendidikan</label>
+            <input 
+              type="text" 
+              required
+              placeholder="Contoh: S1 Teknik Informatika"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+              value={formData.education}
+              onChange={(e) => setFormData({...formData, education: e.target.value})}
+            />
+            <p className="text-[10px] text-slate-400 mt-1">*Tulis jenjang dan jurusan pendidikan terakhir</p>
           </div>
 
           {/* Bio Singkat */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Tentang Kamu (Bio)</label>
             <textarea 
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
               rows="3"
               placeholder="Ceritakan sedikit tentang latar belakangmu..."
               value={formData.bio}

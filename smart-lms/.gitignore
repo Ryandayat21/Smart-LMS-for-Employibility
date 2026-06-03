@@ -11,6 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+*.zip
+.npm-cache/
+node_modules/
+dist/
+smart-lms/.npm-cache/
 
 # Editor directories and files
 .vscode/*
