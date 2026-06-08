@@ -2,7 +2,8 @@ import { auth, googleProvider, db } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
-import { BrainCircuit, Sparkles, User, Lock, ArrowRight, Shield } from 'lucide-react';
+import { BrainCircuit, Sparkles, User, Lock, ArrowRight, Shield, BookOpen } from 'lucide-react';
+import InstructorRegistration from './InstructorRegistration';
 
 const defaultSettings = {
   orgName: 'Skillvora',
@@ -16,6 +17,7 @@ const Login = ({ siteSettings }) => {
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [showInstructorRegistration, setShowInstructorRegistration] = useState(false);
   const settings = siteSettings || defaultSettings;
 
   const loginGoogle = async () => {
@@ -63,6 +65,11 @@ const Login = ({ siteSettings }) => {
       alert('Username atau password admin salah');
     }
   };
+
+  // Return instructor registration form if showInstructorRegistration is true
+  if (showInstructorRegistration) {
+    return <InstructorRegistration onBack={() => setShowInstructorRegistration(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-50 relative overflow-hidden font-sans">
@@ -200,14 +207,21 @@ const Login = ({ siteSettings }) => {
             <div className="h-px bg-slate-200 flex-1"></div>
           </div>
 
-          {/* Admin Login Trigger */}
-          <div className="text-center">
+          {/* Admin & Instructor Registration Buttons */}
+          <div className="space-y-2 text-center">
             <button
               onClick={() => setIsAdminLogin(!isAdminLogin)}
               className="text-indigo-600 hover:text-indigo-700 text-xs font-semibold hover:underline flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
               <Shield size={14} />
               {isAdminLogin ? 'Kembali ke Login User' : 'Masuk sebagai Administrator'}
+            </button>
+            <button
+              onClick={() => setShowInstructorRegistration(true)}
+              className="text-purple-600 hover:text-purple-700 text-xs font-semibold hover:underline flex items-center justify-center gap-1.5 mx-auto transition-colors"
+            >
+              <BookOpen size={14} />
+              Daftar sebagai Instruktur
             </button>
           </div>
 

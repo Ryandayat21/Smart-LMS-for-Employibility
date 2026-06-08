@@ -184,7 +184,7 @@ const parseAiResult = (text) => {
   };
 };
 
-const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, setProfileAction }) => {
+const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, setProfileAction, adminReturnPath }) => {
   const [activeReportTab, setActiveReportTab] = React.useState('kecocokan');
 
   const parsedResult = React.useMemo(() => {
@@ -306,6 +306,15 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          {adminReturnPath && (
+            <button
+              type="button"
+              onClick={() => setActiveTab(adminReturnPath)}
+              className="absolute top-4 left-4 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20 transition"
+            >
+              Kembali ke Manajemen Pengguna
+            </button>
+          )}
           <div className="space-y-2">
             <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">
               Student Dashboard

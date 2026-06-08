@@ -253,4 +253,78 @@ export async function createInstructorApplication(applicationData) {
   const docRef = await addDoc(collection(db, "instructor_applications"), {
     ...applicationData,
     status: "pending", // pending, approved, rejected
-    createdAt: new Dat
+    createdAt: new Date()
+  });
+  return { id: docRef.id, ...applicationData };
+}
+
+export async function getInstructorApplications() {
+  const snapshot = await getDocs(collection(db, "instructor_applications"));
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
+export async function getPendingInstructorApplications() {
+  const q = query(
+    collection(db, "instructor_applications"),
+    where("status", "==", "pending"),
+    orderBy("createdAt", "desc")
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
+export async function approveInstructorApplication(applicationId, applicationData) {
+  // Create new user with role 'instructor'
+  const newUser = await addDoc(collection(db, "users"), {
+    email: applicationData.email,
+    displayName: applicationData.displayName || applicationData.email,
+    role: "instructor",
+    createdAt: new Date(),
+    approvedFrom: applicationId
+  });
+
+  // Update application status
+  const docRef = doc(db, "instructor_applications", applicationId);
+  await updateDoc(docRef, {
+    status: "approved",
+    approvedAt: new Date(),
+    approvedUserId: newUser.id
+  });
+
+  return newUser;
+}
+
+export async function rejectInstructorApplication(applicationId) {
+  const docRef = doc(db, "instructor_applications", applicationId);
+  await updateDoc(docRef, {
+    status: "rejected",
+    rejectedAt: new Date()
+  });
+}
+
+export function subscribeToInstructorApplications(callback) {
+  return onSnapshot(collection(db, "instructor_applications"), (snapshot) => {
+    const apps = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(apps);
+  });
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+export function generateClassCode(length = 6) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}

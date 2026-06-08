@@ -22,7 +22,7 @@ const emptyForm = {
   targetJob: '',
 };
 
-const AdminUsers = () => {
+const AdminUsers = ({ onViewDashboard }) => {
   const [users, setUsers] = useState([]);
   const [filterRole, setFilterRole] = useState('all');
   const [search, setSearch] = useState('');
@@ -100,6 +100,11 @@ const AdminUsers = () => {
   };
 
   const handleEdit = (user) => {
+    if (onViewDashboard) {
+      onViewDashboard(user);
+      return;
+    }
+
     setEditingId(user.id);
     setForm({
       name: user.name || '',

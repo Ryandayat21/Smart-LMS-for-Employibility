@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminSettings from './pages/AdminSettings';
 import AdminUsers from './pages/AdminUsers';
+import AdminInstructorManagement from './pages/AdminInstructorManagement';
+import AdminQuestionBank from './pages/AdminQuestionBank';
 import Assessment from './pages/Assessment';
 import Analytics from './pages/Analytics';
 import SetupProfile from './pages/SetupProfile';
@@ -34,6 +36,7 @@ const App = () => {
   const [user, setUser] = useState(null); // Data user dari Firebase (termasuk role & targetJob)
   const [loading, setLoading] = useState(true); // Status loading saat cek login
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [dashboardUser, setDashboardUser] = useState(null);
   const [aiResult, setAiResult] = useState("");
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [profileAction, setProfileAction] = useState(null);
@@ -263,6 +266,11 @@ const App = () => {
 
     setIsAnalysing(false);
   };
+  const openDashboardForUser = (selectedUser) => {
+    setDashboardUser(selectedUser);
+    setActiveTab('admin-user-dashboard');
+  };
+
   // --- FUNGSI LOGOUT ---
   const handleLogout = async () => {
     try {
@@ -319,7 +327,7 @@ const App = () => {
           {activeTab === 'analytics' && <Analytics user={user} />}
           {activeTab === 'dashboard' && (
             user.role === 'admin' ? (
-              <AdminDashboard user={user} />
+              <AdminDashboard user={user} setActiveTab={setActiveTab} />
             ) : (
               <Dashboard 
                 user={user}
@@ -340,7 +348,25 @@ const App = () => {
               }}
             />
           )}
-          {activeTab === 'admin-users' && user.role === 'admin' && <AdminUsers />}
+          {activeTab === 'admin-users' && user.role === 'admin' && <AdminUsers onViewDashboard={openDashboardForUser} />}
+          {activeTab === 'admin-user-dashboard' && user.role === 'admin' && (
+            dashboardUser ? (
+              <Dashboard
+                user={dashboardUser}
+                aiResult={aiResult}
+                isAnalysing={isAnalysing}
+                runAiAnalysis={runAiAnalysis}
+                setActiveTab={setActiveTab}
+                setProfileAction={setProfileAction}
+                adminReturnPath="admin-users"
+              />
+            ) : (
+              <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+                Tidak ada user yang dipilih. Kembali ke halaman Manajemen Pengguna untuk memilih user.
+              </div>
+            )
+          )}
+          {activeTab === 'admin-instructor-management' && user.role === 'admin' && <AdminInstructorManagement />}
           {activeTab === 'profile' && (
             <UserProfile 
               user={user} 
@@ -350,7 +376,13 @@ const App = () => {
           )}
 
           {/* Tambahan untuk Instruktur */}
-          {activeTab === 'question-bank' && <QuestionBank user={user} />}
+          {activeTab === 'question-bank' && (
+            user.role === 'admin' ? (
+              <AdminQuestionBank user={user} />
+            ) : (
+              <QuestionBank user={user} />
+            )
+          )}
           {activeTab === 'student-results' && <StudentResults user={user} />}
           {activeTab === 'class-management' && <ClassManagement user={user} />}
         </main>

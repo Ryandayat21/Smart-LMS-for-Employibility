@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Target, BarChart3, BrainCircuit, LogOut, ClipboardList, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Target, BarChart3, BrainCircuit, LogOut, ClipboardList, Users, Settings, GraduationCap } from 'lucide-react';
 
 const NavItem = ({ icon: Icon, label, id, activeTab, setActiveTab }) => (
   <button 
@@ -39,10 +39,10 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, siteSettings }) => {
         )}
 
         {/* Cek role Instructor */}
-        {user?.role === 'instructor' && (
+        {(user?.role === 'instructor' || user?.role === 'admin') && (
           <>
             <div className="mt-4 mb-2 px-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instructor Menu</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Instruktur / Admin Menu</p>
             </div>
             <NavItem icon={BookOpen} label="Kelola Kelas" id="class-management" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={ClipboardList} label="Kelola Soal" id="question-bank" activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -57,6 +57,8 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, siteSettings }) => {
             </div>
             <NavItem icon={Settings} label="Pengaturan Website" id="site-settings" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={Users} label="Manajemen Pengguna" id="admin-users" activeTab={activeTab} setActiveTab={setActiveTab} />
+            <NavItem icon={GraduationCap} label="Kelola Instruktur" id="admin-instructor-management" activeTab={activeTab} setActiveTab={setActiveTab} />
+            <NavItem icon={BookOpen} label="Kelola Kelas" id="class-management" activeTab={activeTab} setActiveTab={setActiveTab} />
           </>
         )}
       </nav>

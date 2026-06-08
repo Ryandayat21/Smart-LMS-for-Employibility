@@ -102,7 +102,9 @@ const ClassManagement = ({ user }) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Kelola Kelas</h1>
-          <p className="text-slate-500 text-sm">Buat kelas belajar dan tautkan dengan paket ujian kompetensi.</p>
+          <p className="text-slate-500 text-sm">
+            {isAdminOrInstructor ? 'Buat kelas belajar dan tautkan dengan paket ujian kompetensi.' : 'Hanya Admin atau Instruktur yang dapat membuat dan mengelola kelas.'}
+          </p>
         </div>
         {isAdminOrInstructor && (
           <button
