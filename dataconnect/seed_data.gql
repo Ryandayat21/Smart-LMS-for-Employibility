@@ -1,0 +1,95 @@
+mutation SeedData @transaction @auth(level: USER, insecureReason: "Seed data is for development purposes only and can be created by any logged-in user.") {
+  user_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000001",
+      displayName: "Alice Smith",
+      email: "alice.smith@example.com",
+      createdAt: "2023-01-01T10:00:00Z",
+      bio: "Passionate learner and educator."
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000002",
+      displayName: "Bob Johnson",
+      email: "bob.johnson@example.com",
+      createdAt: "2023-01-02T11:00:00Z",
+      bio: "Tech enthusiast and course creator."
+    }
+  ])
+  course_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000003",
+      title: "Introduction to GraphQL",
+      description: "Learn the basics of GraphQL for modern APIs.",
+      createdAt: "2023-01-10T12:00:00Z",
+      instructorId: "00000000-0000-4000-8000-000000000002",
+      category: "Programming",
+      difficulty: "Beginner",
+      price: 49.99
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000004",
+      title: "Advanced Firebase Development",
+      description: "Dive deep into Firebase services for scalable apps.",
+      createdAt: "2023-01-15T13:00:00Z",
+      instructorId: "00000000-0000-4000-8000-000000000002",
+      category: "Cloud Computing",
+      difficulty: "Intermediate",
+      price: 99.99
+    }
+  ])
+  lesson_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000005",
+      title: "What is GraphQL?",
+      content: "An overview of GraphQL's core concepts.",
+      orderIndex: 1,
+      courseId: "00000000-0000-4000-8000-000000000003",
+      duration: 15
+    },
+    {
+      id: "00000000-0000-4000-8000-000000000006",
+      title: "Queries and Mutations",
+      content: "Exploring data fetching and modification in GraphQL.",
+      orderIndex: 2,
+      courseId: "00000000-0000-4000-8000-000000000003",
+      duration: 20
+    }
+  ])
+  assignment_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000007",
+      title: "GraphQL Schema Design",
+      description: "Design a GraphQL schema for a simple blog application.",
+      dueDate: "2023-02-01T17:00:00Z",
+      courseId: "00000000-0000-4000-8000-000000000003",
+      maxScore: 100
+    }
+  ])
+  quiz_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000008",
+      title: "GraphQL Basics Quiz",
+      passingScore: 70,
+      lessonId: "00000000-0000-4000-8000-000000000005",
+      numberOfQuestions: 5
+    }
+  ])
+  question_insertMany(data: [
+    {
+      id: "00000000-0000-4000-8000-000000000009",
+      text: "What does GraphQL stand for?",
+      type: "Multiple Choice",
+      correctAnswer: "Graph Query Language",
+      quizId: "00000000-0000-4000-8000-000000000008",
+      options: ["Graph Query Language", "General Query Logic", "Graphical Query Link"]
+    }
+  ])
+  enrollment_insertMany(data: [
+    {
+      userId: "00000000-0000-4000-8000-000000000001",
+      courseId: "00000000-0000-4000-8000-000000000003",
+      enrolledAt: "2023-01-12T09:00:00Z",
+      progress: 25
+    }
+  ])
+}
