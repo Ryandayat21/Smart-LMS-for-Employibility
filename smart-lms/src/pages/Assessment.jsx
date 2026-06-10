@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, setDoc, query, orderBy } from 'firebase/firestore';
-import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck, BookOpen } from 'lucide-react';
+import { collection, getDocs, doc, setDoc, query, orderBy, where } from 'firebase/firestore';
+import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck, BookOpen, Target } from 'lucide-react';
 import ConversationTest from "../components/ConversationTest";
 
 const Assessment = ({ user, setActiveTab }) => {
@@ -39,7 +39,25 @@ const Assessment = ({ user, setActiveTab }) => {
           }
         }
         
-        // Fallback: Direct Assessment (flat collection)
+        // Prioritas 2: Asesmen Awal berdasarkan Target Job
+        if ((!querySnapshot || querySnapshot.empty) && user?.targetJob) {
+          const pkgsRef = collection(db, "question_packages");
+          const q = query(pkgsRef, where("targetJob", "==", user.targetJob));
+          const pkgsSnap = await getDocs(q);
+          
+          if (!pkgsSnap.empty) {
+            // Ambil paket pertama yang cocok
+            const matchedPkgId = pkgsSnap.docs[0].id;
+            const targetQuestionsRef = collection(db, "question_packages", matchedPkgId, "questions");
+            querySnapshot = await getDocs(query(targetQuestionsRef, orderBy("order", "asc")));
+            
+            if (!querySnapshot.empty) {
+              setQuestionSource('targetJob');
+            }
+          }
+        }
+
+        // Fallback: Direct Assessment (Umum / flat collection)
         if (!querySnapshot || querySnapshot.empty) {
           querySnapshot = await getDocs(collection(db, "questions"));
           setQuestionSource('direct');
@@ -53,7 +71,7 @@ const Assessment = ({ user, setActiveTab }) => {
       }
     };
     fetchQuestions();
-  }, [user?.packageId]);
+  }, [user?.packageId, user?.targetJob]);
 
   const handlePGAnswer = async (score) => {
     const currentPG = pgQuestions[pgIndex];
@@ -124,6 +142,7 @@ const Assessment = ({ user, setActiveTab }) => {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AI Conversation</span>
             <span className="text-base font-bold text-slate-800">{conversationQuestions.length} Butir Kasus</span>
           </div>
+
           <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Kompetensi</span>
             <span className="text-base font-bold text-indigo-600 capitalize">{user?.targetJob ? user.targetJob.replace('-', ' ') : 'Umum'}</span>
@@ -132,7 +151,9 @@ const Assessment = ({ user, setActiveTab }) => {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sumber Soal</span>
             <span className="text-base font-bold text-slate-800 flex items-center gap-1.5">
               <BookOpen size={14} className="text-indigo-500" />
-              {questionSource === 'package' ? (user?.packageName || 'Paket Kelas') : 'Direct Assessment'}
+              {questionSource === 'package' ? (user?.packageName || 'Paket Kelas') : 
+               questionSource === 'targetJob' ? `Asesmen Awal: ${user?.targetJob}` : 
+               'Asesmen Umum (Default)'}
             </span>
           </div>
         </div>
@@ -170,7 +191,6 @@ const Assessment = ({ user, setActiveTab }) => {
           </label>
         </div>
 
-        {/* Action Button */}
         <button
           onClick={() => setIsStarted(true)}
           disabled={!isAgreed}

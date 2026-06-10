@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Dashboard from "./Dashboard";
 import { db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { Camera, Edit2, Check, X, Phone, Mail, GraduationCap, MapPin, Calendar, Award, Briefcase, Plus, ExternalLink, Trash2, ShieldCheck, FolderGit2 } from 'lucide-react';
 
 const UserProfile = ({ user, profileAction, setProfileAction }) => {
   const [activeTab, setActiveTab] = useState("certifications");
@@ -324,348 +325,411 @@ const UserProfile = ({ user, profileAction, setProfileAction }) => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-8 bg-white rounded-3xl shadow-md mt-8">
-
-      {/* ===== HEADER ===== */}
-      <div className="flex flex-col md:flex-row gap-8">
-
-        {/* FOTO */}
-        <div className="flex flex-col items-center md:w-1/3">
-          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-indigo-500 mb-4">
-            {user?.profilePic ? (
-              <img src={user.profilePic} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
-                No Photo
-              </div>
-            )}
-          </div>
-
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*"
-            onChange={handleFileChange}
-          />
-
-          <button
-            onClick={() => fileInputRef.current.click()}
-            disabled={isUploading}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-xl disabled:bg-slate-400"
-          >
-            {isUploading ? "Mengunggah..." : "Unggah Foto"}
-          </button>
-        </div>
-
-        {/* INFO */}
-        <div className="flex-1 space-y-4">
-
-          {/* HEADER + BUTTON */}
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg">Profile</h3>
-
+    <div className="max-w-5xl mx-auto mt-8 mb-20">
+      {/* ===== HERO / HEADER ===== */}
+      <div className="bg-white rounded-3xl shadow-xs border border-slate-100 overflow-hidden relative">
+        {/* Cover Background */}
+        <div className="h-40 md:h-56 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 relative">
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]"></div>
+          
+          {/* Edit Button overlay on cover */}
+          <div className="absolute top-6 right-6 z-10">
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm"
+                className="flex items-center gap-2 bg-white/90 backdrop-blur-md text-slate-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all hover:scale-105"
               >
+                <Edit2 size={14} />
                 Edit Profil
               </button>
             ) : (
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 border rounded-xl"
+                  className="flex items-center gap-1.5 bg-white/90 backdrop-blur-md text-slate-700 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-slate-50 transition-all"
                 >
+                  <X size={14} />
                   Batal
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl disabled:bg-slate-400"
+                  className="flex items-center gap-1.5 bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md hover:bg-indigo-700 transition-all disabled:opacity-70"
                 >
+                  <Check size={14} />
                   {isSaving ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
             )}
           </div>
+        </div>
 
-          {/* FIELD */}
-          <div className="grid grid-cols-2 gap-4">
+        {/* Profile Content Overlay */}
+        <div className="px-8 pb-8">
+          <div className="flex flex-col md:flex-row gap-8 relative -mt-16">
+            
+            {/* FOTO */}
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative group">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl bg-white relative z-10">
+                  {user?.profilePic ? (
+                    <img src={user.profilePic} className="w-full h-full object-cover" alt="Profile" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
+                      <Camera size={40} />
+                    </div>
+                  )}
+                </div>
 
-            {/* Nama */}
-            <div>
-              <label className="text-xs text-slate-500">Nama</label>
-              {isEditing ? (
-                <input
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleFileChange}
                 />
-              ) : (
-                <div className="font-semibold">{user?.fullName || user?.name || "-"}</div>
-              )}
+
+                {/* Upload Button overlay on hover */}
+                <button
+                  onClick={() => fileInputRef.current.click()}
+                  disabled={isUploading}
+                  className="absolute bottom-2 right-2 z-20 bg-indigo-600 text-white p-2.5 rounded-full shadow-lg hover:bg-indigo-700 hover:scale-110 transition-all disabled:bg-slate-400 group-hover:opacity-100"
+                  title="Unggah Foto Profil"
+                >
+                  <Camera size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Umur */}
-            <div>
-              <label className="text-xs text-slate-500">Umur</label>
-              {isEditing ? (
-                <input
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
-              ) : (
-                <div>{user?.age || "-"}</div>
-              )}
-            </div>
+            {/* INFO */}
+            <div className="flex-1 pt-20 md:pt-16 space-y-6 text-center md:text-left">
+              
+              {/* Name & Target Job */}
+              <div>
+                {isEditing ? (
+                  <input
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    className="text-2xl md:text-3xl font-extrabold text-slate-800 border-b-2 border-indigo-200 focus:border-indigo-500 bg-transparent outline-none w-full max-w-sm px-2 py-1 text-center md:text-left"
+                    placeholder="Nama Lengkap"
+                  />
+                ) : (
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800">
+                    {user?.fullName || user?.name || "Nama Belum Diisi"}
+                  </h2>
+                )}
+                <p className="text-sm font-bold text-indigo-500 uppercase tracking-wider mt-1">
+                  Target Karir: <span className="text-slate-500">{user?.targetJob ? user.targetJob.replace('-', ' ') : 'Belum ditentukan'}</span>
+                </p>
+              </div>
 
-            {/* No HP */}
-            <div>
-              <label className="text-xs text-slate-500">No HP</label>
-              {isEditing ? (
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
-              ) : (
-                <div>{user?.phone || "-"}</div>
-              )}
-            </div>
+              {/* Personal Details Form/Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl bg-slate-50/50 p-5 rounded-2xl border border-slate-100 text-left">
+                
+                {/* Age */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-100/50 text-indigo-500 rounded-lg shrink-0">
+                    <Calendar size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Umur</label>
+                    {isEditing ? (
+                      <input
+                        name="age"
+                        value={formData.age}
+                        onChange={handleChange}
+                        className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        placeholder="Contoh: 21"
+                      />
+                    ) : (
+                      <div className="text-sm font-semibold text-slate-700">{user?.age ? `${user.age} Tahun` : "-"}</div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Email */}
-            <div>
-              <label className="text-xs text-slate-500">Email</label>
-              {isEditing ? (
-                <input
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
-              ) : (
-                <div>{user?.email || "-"}</div>
-              )}
-            </div>
+                {/* Education */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-emerald-100/50 text-emerald-500 rounded-lg shrink-0">
+                    <GraduationCap size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Pendidikan</label>
+                    {isEditing ? (
+                      <input
+                        name="education"
+                        value={formData.education}
+                        onChange={handleChange}
+                        className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        placeholder="Contoh: S1 Teknik Informatika"
+                      />
+                    ) : (
+                      <div className="text-sm font-semibold text-slate-700">{user?.education || "-"}</div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Pendidikan */}
-            <div className="col-span-2">
-              <label className="text-xs text-slate-500">Pendidikan</label>
-              {isEditing ? (
-                <input
-                  name="education"
-                  value={formData.education}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
-                />
-              ) : (
-                <div>{user?.education || "-"}</div>
-              )}
-            </div>
+                {/* Phone */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100/50 text-amber-500 rounded-lg shrink-0">
+                    <Phone size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">No. Handphone</label>
+                    {isEditing ? (
+                      <input
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        placeholder="Contoh: 0812..."
+                      />
+                    ) : (
+                      <div className="text-sm font-semibold text-slate-700">{user?.phone || "-"}</div>
+                    )}
+                  </div>
+                </div>
 
+                {/* Email */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-rose-100/50 text-rose-500 rounded-lg shrink-0">
+                    <Mail size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Email</label>
+                    {isEditing ? (
+                      <input
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        placeholder="email@example.com"
+                      />
+                    ) : (
+                      <div className="text-sm font-semibold text-slate-700 truncate">{user?.email || "-"}</div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ===== TAB ===== */}
-      <div className="flex gap-6 mt-10 border-b pb-2">
-        {["certifications", "projects", "skills"].map((tab) => (
+      {/* ===== TABS ===== */}
+      <div className="flex flex-wrap gap-2 mt-8 mb-6">
+        {[
+          { id: "certifications", label: "Sertifikasi", icon: <Award size={16} /> },
+          { id: "projects", label: "Projek Portofolio", icon: <Briefcase size={16} /> }
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`capitalize ${
-              activeTab === tab
-                ? "text-indigo-600 border-b-2 border-indigo-600"
-                : "text-slate-500"
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 ${
+              activeTab === tab.id
+                ? "bg-slate-800 text-white shadow-md scale-105"
+                : "bg-white text-slate-500 hover:bg-slate-100 border border-slate-200"
             }`}
           >
-            {tab === "certifications"
-              ? "Sertifikasi"
-              : tab === "projects"
-              ? "Projek"
-              : "Skill"}
+            {tab.icon}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ===== CONTENT ===== */}
-      <div className="mt-6">
+      {/* ===== CONTENT AREA ===== */}
+      <div className="min-h-[400px]">
 
         {/* ===== SERTIFIKASI ===== */}
         {activeTab === "certifications" && (
-          <>
-            <div className="flex justify-between mb-4">
-              <h4 className="font-bold">Sertifikasi</h4>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+              <div>
+                <h4 className="font-extrabold text-slate-800 flex items-center gap-2 text-lg">
+                  <Award className="text-indigo-500" />
+                  Galeri Sertifikasi
+                </h4>
+                <p className="text-xs text-slate-500 font-medium mt-1">Unggah bukti lisensi atau kursus yang relevan.</p>
+              </div>
               <button 
                 onClick={() => setShowCertModal(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm"
+                className="flex items-center gap-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-xl text-xs font-bold transition-all"
               >
-                + Tambah
+                <Plus size={16} />
+                Tambah Baru
               </button>
             </div>
 
-            <table className="w-full text-sm border rounded-xl overflow-hidden">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="p-3 text-left">Tanggal</th>
-                  <th className="p-3 text-left">Nama</th>
-                  <th className="p-3 text-left">Lembaga</th>
-                  <th className="p-3 text-left">Skill</th>
-                  <th className="p-3 text-left">File</th>
-                  <th className="p-3 text-left">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(user?.certifications || []).length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="p-8 text-center text-slate-400">
-                      Belum ada sertifikasi. Klik "+ Tambah" untuk menambahkan.
-                    </td>
-                  </tr>
-                ) : (
-                  (user.certifications).map((c, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="p-3">{c.date}</td>
-                      <td className="p-3 font-medium">{c.title}</td>
-                      <td className="p-3">{c.issuer}</td>
-                      <td className="p-3">
-                        <div className="flex gap-2 flex-wrap">
-                          {c.skills?.map((s, idx) => (
-                            <span key={idx} className="bg-indigo-100 text-indigo-600 px-2 py-1 rounded text-xs">
-                              {s}
-                            </span>
-                          ))}
+            {(user?.certifications || []).length === 0 ? (
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 shadow-sm mb-4">
+                  <Award size={32} />
+                </div>
+                <h5 className="font-bold text-slate-700 mb-1">Belum ada sertifikasi</h5>
+                <p className="text-sm text-slate-500 mb-4">Tunjukkan keahlianmu dengan menambahkan sertifikat kursus atau lisensi.</p>
+                <button onClick={() => setShowCertModal(true)} className="text-indigo-600 text-sm font-bold hover:underline">
+                  + Tambah Sertifikasi Pertama
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {(user.certifications).map((c, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all duration-300 group flex flex-col overflow-hidden">
+                    {/* Card Header */}
+                    <div className="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 mb-1">
+                          <Calendar size={12} />
+                          {c.date}
                         </div>
-                      </td>
-                      <td className="p-3">
-                        {c.fileData ? (
+                        <h5 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight" title={c.title}>
+                          {c.title}
+                        </h5>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <Award size={16} />
+                      </div>
+                    </div>
+                    
+                    {/* Card Body */}
+                    <div className="p-4 flex-1 flex flex-col">
+                      <p className="text-xs font-semibold text-slate-600 mb-4 flex items-center gap-1.5">
+                        <MapPin size={12} className="text-slate-400" />
+                        Penerbit: <span className="text-slate-800">{c.issuer}</span>
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
+                        {c.skills?.slice(0, 4).map((s, idx) => (
+                          <span key={idx} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap">
+                            {s}
+                          </span>
+                        ))}
+                        {c.skills?.length > 4 && (
+                          <span className="bg-slate-50 text-slate-400 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                            +{c.skills.length - 4}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Card Footer Actions */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-2">
+                          <button onClick={() => startEditCert(i)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteCert(i)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        {c.fileData && (
                           <button 
                             onClick={() => openBase64File(c.fileData)}
-                            className="text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
+                            className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:underline bg-indigo-50 px-2.5 py-1.5 rounded-lg"
                           >
-                            Lihat
+                            Lihat File <ExternalLink size={10} />
                           </button>
-                        ) : (
-                          <span className="text-slate-400">-</span>
                         )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-3">
-                          <button 
-                            onClick={() => startEditCert(i)}
-                            className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteCert(i)}
-                            className="text-red-500 hover:text-red-700 font-semibold cursor-pointer"
-                          >
-                            Hapus
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ===== PROJEK ===== */}
         {activeTab === "projects" && (
-          <>
-            <div className="flex justify-between mb-4">
-              <h4 className="font-bold">Projek</h4>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+              <div>
+                <h4 className="font-extrabold text-slate-800 flex items-center gap-2 text-lg">
+                  <FolderGit2 className="text-emerald-500" />
+                  Galeri Projek Portofolio
+                </h4>
+                <p className="text-xs text-slate-500 font-medium mt-1">Pamerkan hasil karya atau studi kasus terbaikmu.</p>
+              </div>
               <button 
                 onClick={() => setShowProjModal(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm"
+                className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-4 py-2 rounded-xl text-xs font-bold transition-all"
               >
-                + Tambah
+                <Plus size={16} />
+                Tambah Baru
               </button>
             </div>
 
-            <table className="w-full text-sm border rounded-xl overflow-hidden">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="p-3 text-left">Tanggal</th>
-                  <th className="p-3 text-left">Nama</th>
-                  <th className="p-3 text-left">Deskripsi</th>
-                  <th className="p-3 text-left">Skill</th>
-                  <th className="p-3 text-left">Link</th>
-                  <th className="p-3 text-left">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(user?.projects || []).length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="p-8 text-center text-slate-400">
-                      Belum ada projek. Klik "+ Tambah" untuk menambahkan.
-                    </td>
-                  </tr>
-                ) : (
-                  (user.projects).map((p, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="p-3">{p.date}</td>
-                      <td className="p-3 font-medium">{p.name}</td>
-                      <td className="p-3">{p.description}</td>
-                      <td className="p-3">
-                        <div className="flex gap-2 flex-wrap">
-                          {p.skills?.map((s, idx) => (
-                            <span key={idx} className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">
-                              {s}
-                            </span>
-                          ))}
+            {(user?.projects || []).length === 0 ? (
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-slate-300 shadow-sm mb-4">
+                  <FolderGit2 size={32} />
+                </div>
+                <h5 className="font-bold text-slate-700 mb-1">Belum ada projek</h5>
+                <p className="text-sm text-slate-500 mb-4">Tunjukkan kemampuanmu lewat studi kasus atau hasil kerja praktis.</p>
+                <button onClick={() => setShowProjModal(true)} className="text-emerald-600 text-sm font-bold hover:underline">
+                  + Tambah Projek Pertama
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-5">
+                {(user.projects).map((p, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-xs hover:shadow-md transition-all duration-300 group flex flex-col overflow-hidden">
+                    {/* Card Header */}
+                    <div className="p-5 border-b border-slate-50 flex justify-between items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-500 mb-1.5">
+                          <Calendar size={12} />
+                          {p.date}
                         </div>
-                      </td>
-                      <td className="p-3">
-                        {p.link ? (
-                          <a 
-                            href={p.link.startsWith('http') ? p.link : `https://${p.link}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
-                          >
-                            Buka Link
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-3">
-                          <button 
-                            onClick={() => startEditProj(i)}
-                            className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteProj(i)}
-                            className="text-red-500 hover:text-red-700 font-semibold cursor-pointer"
-                          >
-                            Hapus
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
+                        <h5 className="font-extrabold text-slate-800 text-base line-clamp-1" title={p.name}>
+                          {p.name}
+                        </h5>
+                      </div>
+                      {p.link && (
+                        <a 
+                          href={p.link.startsWith('http') ? p.link : `https://${p.link}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors shrink-0"
+                          title="Buka Tautan"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                    
+                    {/* Card Body */}
+                    <div className="p-5 flex-1 flex flex-col bg-slate-50/50">
+                      <p className="text-xs font-medium text-slate-600 mb-5 line-clamp-3 leading-relaxed">
+                        {p.description}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-1.5 mb-5 mt-auto">
+                        {p.skills?.map((s, idx) => (
+                          <span key={idx} className="bg-white border border-emerald-100 text-emerald-600 px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap shadow-sm">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
 
-        {/* ===== SKILL ===== */}
-        {activeTab === "skills" && (
-          <Dashboard user={user} runAiAnalysis={() => {}} />
+                      {/* Card Footer Actions */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-200/60 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aksi</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => startEditProj(i)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors shadow-sm" title="Edit">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteProj(i)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors shadow-sm" title="Hapus">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

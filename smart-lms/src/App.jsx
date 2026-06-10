@@ -160,13 +160,11 @@ const App = () => {
   const runAiAnalysis = async () => {
     if (!user || !user.skills) return;
 
-    // Only require assessments (PG + Voice) — portfolio is optional
+    // Only require assessment — portfolio is optional
     const isPgDone = !!(user.skills && Object.values(user.skills).some(val => val > 0));
-    const isVoiceDone = !!(user.skills?.communication && user.skills.communication > 0);
 
     const incomplete = [];
-    if (!isPgDone) incomplete.push("Asesmen Awal (Pilihan Ganda)");
-    if (!isVoiceDone) incomplete.push("AI Voice Interview");
+    if (!isPgDone) incomplete.push("Asesmen Awal & Interview");
 
     if (incomplete.length > 0) {
       alert(`Kamu belum dapat menjalankan Smart Analysis AI. Silakan selesaikan asesmen berikut terlebih dahulu:\n\n${incomplete.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}`);
@@ -189,6 +187,15 @@ const App = () => {
     - DILARANG KERAS mengarang, mengasumsikan, atau membuat data proyek/sertifikasi yang TIDAK ada dalam data user.
     - Jika user BELUM memiliki proyek atau sertifikasi, JANGAN sebutkan seolah-olah mereka memilikinya.
     - Hanya analisis data yang BENAR-BENAR diberikan dalam profil user.
+
+    [NEW] RUBRIK ANALISIS (Gunakan panduan ini untuk memberi rekomendasi):
+    1. Competency Alignment: Bandingkan skor asesmen dengan kebutuhan karir. Jika selisihnya besar, berikan peringatan objektif namun suportif.
+    2. Portfolio Relevance: Jika profil memiliki portofolio yang relevan, jadikan itu sebagai poin plus yang menutupi kelemahan teoritis.
+    3. Actionability Matrix:
+       - Jika Skor Tinggi + Tanpa Portofolio: Sarankan ide proyek nyata yang spesifik untuk target karirnya agar segera dibuat.
+       - Jika Skor Rendah + Tanpa Portofolio: Sarankan bootcamp/kursus dasar dan proyek yang sangat sederhana.
+       - Jika Skor Rendah + Portofolio Relevan: Fokuskan saran pada pemahaman teori fundamental dan perbaikan.
+       - Jika Skor Tinggi + Portofolio Relevan: Dorong untuk membangun personal branding dan melamar kerja.
     ${!hasProjects && !hasCerts ? `
     ⚠️ PERHATIAN: Mahasiswa ini SAMA SEKALI BELUM memiliki portofolio proyek DAN sertifikasi.
     - JANGAN menyebutkan proyek atau sertifikasi apapun seolah-olah sudah ada.

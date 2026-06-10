@@ -243,28 +243,19 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
   const isVoiceDone = !!(user?.skills?.communication && user.skills.communication > 0);
   const isProjectsDone = !!(user?.projects && user.projects.length > 0);
   const isCertsDone = !!(user?.certifications && user.certifications.length > 0);
-  // AI analysis only requires assessments (PG + Voice) — portfolio is optional
-  const canRunAi = isPgDone && isVoiceDone;
+  // AI analysis only requires assessment — portfolio is optional
+  const canRunAi = isPgDone;
   const hasPortfolio = isProjectsDone || isCertsDone;
 
   const milestones = [
     {
       id: 1,
-      title: "Asesmen Awal (PG)",
-      desc: "Menyelesaikan tes tertulis pilihan ganda untuk pemetaan awal 10 aspek kompetensi.",
+      title: "Asesmen Awal & Interview",
+      desc: "Menyelesaikan tes tertulis (PG) dan simulasi wawancara verbal untuk pemetaan awal 10 aspek kompetensi.",
       isCompleted: isPgDone,
       isOptional: false,
       action: () => setActiveTab('assessment'),
-      label: "Mulai Tes PG",
-    },
-    {
-      id: 2,
-      title: "AI Voice Interview",
-      desc: "Menyelesaikan simulasi wawancara verbal interaktif menggunakan mikrofon & AI Voice.",
-      isCompleted: isVoiceDone,
-      isOptional: false,
-      action: () => setActiveTab('assessment'),
-      label: "Mulai Wawancara",
+      label: "Mulai Asesmen",
     },
     {
       id: 3,
@@ -506,10 +497,11 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
               <button 
                 onClick={runAiAnalysis}
                 disabled={isAnalysing || !canRunAi}
-                className="flex items-center justify-center p-2 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 rounded-xl transition-colors cursor-pointer"
-                title={canRunAi ? "Analisis Ulang" : "Lengkapi asesmen awal terlebih dahulu"}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 rounded-xl transition-all cursor-pointer shadow-xs font-bold text-xs"
+                title={canRunAi ? "Jalankan ulang Smart Analysis" : "Lengkapi asesmen awal terlebih dahulu"}
               >
-                <BrainCircuit size={16} className={isAnalysing ? "animate-spin" : ""} />
+                <BrainCircuit size={14} className={isAnalysing ? "animate-spin" : ""} />
+                {isAnalysing ? "Menganalisis..." : aiResult ? "Analisis Ulang" : "Mulai Analisis"}
               </button>
             </div>
           </div>
@@ -558,7 +550,7 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                       Smart Analysis AI Terkunci 🔒
                     </h4>
                     <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                      Selesaikan 2 asesmen wajib di bawah ini untuk membuka analisis AI. Portofolio proyek dan sertifikasi bersifat opsional.
+                      Selesaikan asesmen wajib di bawah ini untuk membuka analisis AI. Portofolio proyek dan sertifikasi bersifat opsional.
                     </p>
                   </div>
 
@@ -573,27 +565,12 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isPgDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                             {isPgDone ? "✓" : "1"}
                           </div>
-                          <span className={isPgDone ? "text-slate-400 line-through" : "text-slate-700"}>Asesmen Awal (PG)</span>
+                          <span className={isPgDone ? "text-slate-400 line-through" : "text-slate-700"}>Asesmen Awal & Interview</span>
                         </div>
                         {isPgDone ? (
                           <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">Selesai</span>
                         ) : (
-                          <button onClick={() => setActiveTab('assessment')} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Mulai Tes PG →</button>
-                        )}
-                      </div>
-
-                      {/* Milestone 2 */}
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isVoiceDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                            {isVoiceDone ? "✓" : "2"}
-                          </div>
-                          <span className={isVoiceDone ? "text-slate-400 line-through" : "text-slate-700"}>AI Voice Interview</span>
-                        </div>
-                        {isVoiceDone ? (
-                          <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">Selesai</span>
-                        ) : (
-                          <button onClick={() => setActiveTab('assessment')} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Mulai Interview →</button>
+                          <button onClick={() => setActiveTab('assessment')} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Mulai Asesmen →</button>
                         )}
                       </div>
                     </div>
