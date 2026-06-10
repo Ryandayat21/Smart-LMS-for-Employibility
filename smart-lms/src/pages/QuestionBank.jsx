@@ -12,8 +12,8 @@ const ASPECTS = [
   { value: "workEthic", label: "Work Ethic" },
   { value: "digitalLiteracy", label: "Digital Literacy" },
   { value: "criticalThinking", label: "Critical Thinking" },
-  { value: "attentionToDetail", label: "Attention To Detail" },
-  { value: "emotionalIntelligence", label: "Emotional Intelligence" },
+  { value: "attentionDetail", label: "Attention To Detail" },
+  { value: "emotionalIntel", label: "Emotional Intelligence" },
 ];
 
 const INITIAL_FORM = {

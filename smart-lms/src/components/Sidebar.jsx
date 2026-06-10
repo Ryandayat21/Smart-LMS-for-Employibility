@@ -58,7 +58,6 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, siteSettings }) => {
             <NavItem icon={Settings} label="Pengaturan Website" id="site-settings" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={Users} label="Manajemen Pengguna" id="admin-users" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem icon={GraduationCap} label="Kelola Instruktur" id="admin-instructor-management" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <NavItem icon={BookOpen} label="Kelola Kelas" id="class-management" activeTab={activeTab} setActiveTab={setActiveTab} />
           </>
         )}
       </nav>

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck } from 'lucide-react';
+import { collection, getDocs, doc, setDoc, query, orderBy } from 'firebase/firestore';
+import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck, BookOpen } from 'lucide-react';
 import ConversationTest from "../components/ConversationTest";
 
 const Assessment = ({ user, setActiveTab }) => {
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [questionSource, setQuestionSource] = useState(''); // 'package' or 'direct'
 
   // ✅ Layar instruksi & konfirmasi
   const [isStarted, setIsStarted] = useState(false);
@@ -25,13 +26,34 @@ const Assessment = ({ user, setActiveTab }) => {
 
   useEffect(() => {
     const fetchQuestions = async () => {
-      const querySnapshot = await getDocs(collection(db, "questions"));
-      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      data.sort((a, b) => a.order - b.order);
-      setQuestions(data);
+      try {
+        let querySnapshot;
+        
+        // Prioritas 1: Soal dari paket kelas yang diikuti user
+        if (user?.packageId) {
+          const pkgQuestionsRef = collection(db, "question_packages", user.packageId, "questions");
+          querySnapshot = await getDocs(query(pkgQuestionsRef, orderBy("order", "asc")));
+          
+          if (!querySnapshot.empty) {
+            setQuestionSource('package');
+          }
+        }
+        
+        // Fallback: Direct Assessment (flat collection)
+        if (!querySnapshot || querySnapshot.empty) {
+          querySnapshot = await getDocs(collection(db, "questions"));
+          setQuestionSource('direct');
+        }
+        
+        const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => (a.order || 0) - (b.order || 0));
+        setQuestions(data);
+      } catch (error) {
+        console.error("Gagal memuat soal:", error);
+      }
     };
     fetchQuestions();
-  }, []);
+  }, [user?.packageId]);
 
   const handlePGAnswer = async (score) => {
     const currentPG = pgQuestions[pgIndex];
@@ -107,8 +129,11 @@ const Assessment = ({ user, setActiveTab }) => {
             <span className="text-base font-bold text-indigo-600 capitalize">{user?.targetJob ? user.targetJob.replace('-', ' ') : 'Umum'}</span>
           </div>
           <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Durasi Pengerjaan</span>
-            <span className="text-base font-bold text-slate-800">Mandiri (Self-paced)</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sumber Soal</span>
+            <span className="text-base font-bold text-slate-800 flex items-center gap-1.5">
+              <BookOpen size={14} className="text-indigo-500" />
+              {questionSource === 'package' ? (user?.packageName || 'Paket Kelas') : 'Direct Assessment'}
+            </span>
           </div>
         </div>
 

@@ -127,7 +127,26 @@ const App = () => {
           const summaryRef = doc(db, "ai_summaries", user.uid);
           const snap = await getDoc(summaryRef);
           if (snap.exists() && snap.data().summary) {
-            setAiResult(snap.data().summary);
+            const savedData = snap.data();
+            
+            // Validasi: apakah status portofolio saat ini cocok dengan saat analisis dibuat?
+            const currentHasProjects = !!(user.projects && user.projects.length > 0);
+            const currentHasCerts = !!(user.certifications && user.certifications.length > 0);
+            const savedHasProjects = savedData.hasProjects ?? null;
+            const savedHasCerts = savedData.hasCerts ?? null;
+            
+            // Jika metadata tersimpan, validasi kecocokan portofolio
+            // Jika metadata tidak ada (data lama), anggap stale dan jangan load
+            if (savedHasProjects === null || savedHasCerts === null) {
+              console.log("⚠️ Hasil analisis lama tanpa metadata portofolio. Perlu analisis ulang.");
+              return; // Jangan load hasil lama tanpa metadata
+            }
+            if (savedHasProjects !== currentHasProjects || savedHasCerts !== currentHasCerts) {
+              console.log("⚠️ Profil portofolio berubah sejak analisis terakhir. Hasil lama diabaikan.");
+              return; // Jangan load hasil lama
+            }
+            
+            setAiResult(savedData.summary);
           }
         } catch (e) {
           console.error("Gagal memuat rangkuman AI:", e);
@@ -135,31 +154,30 @@ const App = () => {
       }
     };
     loadAiResult();
-  }, [user?.uid]);
+  }, [user?.uid, user?.projects, user?.certifications]);
 
   // --- 3. FUNGSI AI (UPDATE TERBARU) ---
   const runAiAnalysis = async () => {
     if (!user || !user.skills) return;
 
-    // Pastikan user telah menyelesaikan 4 milestone sebelumnya
+    // Only require assessments (PG + Voice) — portfolio is optional
     const isPgDone = !!(user.skills && Object.values(user.skills).some(val => val > 0));
     const isVoiceDone = !!(user.skills?.communication && user.skills.communication > 0);
-    const isProjectsDone = !!(user.projects && user.projects.length > 0);
-    const isCertsDone = !!(user.certifications && user.certifications.length > 0);
 
     const incomplete = [];
     if (!isPgDone) incomplete.push("Asesmen Awal (Pilihan Ganda)");
     if (!isVoiceDone) incomplete.push("AI Voice Interview");
-    if (!isProjectsDone) incomplete.push("Portofolio Proyek");
-    if (!isCertsDone) incomplete.push("Sertifikasi Kompetensi");
 
     if (incomplete.length > 0) {
-      alert(`Kamu belum dapat menjalankan Smart Analysis AI. Silakan selesaikan milestone berikut terlebih dahulu:\n\n${incomplete.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}`);
+      alert(`Kamu belum dapat menjalankan Smart Analysis AI. Silakan selesaikan asesmen berikut terlebih dahulu:\n\n${incomplete.map((item, idx) => `${idx + 1}. ${item}`).join('\n')}`);
       return;
     }
     
     setIsAnalysing(true);
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+
+    const hasProjects = user.projects && user.projects.length > 0;
+    const hasCerts = user.certifications && user.certifications.length > 0;
 
     const systemInstructions = `Anda adalah AI Career Expert dari Smart LMS UNNES. 
     Analisis 10 aspek kompetensi mahasiswa secara sangat ringkas, padat, dan langsung pada poinnya.
@@ -167,6 +185,27 @@ const App = () => {
     JANGAN gunakan simbol persen (%) dalam tabel atau penjelasan. 
     Gunakan format tabel Markdown untuk analisis kecocokan.
     
+    ATURAN KETAT ANTI-HALUSINASI:
+    - DILARANG KERAS mengarang, mengasumsikan, atau membuat data proyek/sertifikasi yang TIDAK ada dalam data user.
+    - Jika user BELUM memiliki proyek atau sertifikasi, JANGAN sebutkan seolah-olah mereka memilikinya.
+    - Hanya analisis data yang BENAR-BENAR diberikan dalam profil user.
+    ${!hasProjects && !hasCerts ? `
+    ⚠️ PERHATIAN: Mahasiswa ini SAMA SEKALI BELUM memiliki portofolio proyek DAN sertifikasi.
+    - JANGAN menyebutkan proyek atau sertifikasi apapun seolah-olah sudah ada.
+    - Pada bagian keselarasan, nyatakan dengan jelas bahwa mahasiswa BELUM memiliki portofolio.
+    - Berikan saran konkret tentang:
+      1. Jenis proyek apa yang sebaiknya dikerjakan sesuai target karir mereka
+      2. Sertifikasi apa yang direkomendasikan untuk memperkuat profil
+      3. Langkah prioritas pertama yang bisa dilakukan segera
+    ` : !hasProjects ? `
+    ⚠️ PERHATIAN: Mahasiswa ini BELUM memiliki proyek portofolio (hanya memiliki sertifikasi).
+    - JANGAN menyebutkan proyek apapun seolah-olah sudah ada.
+    - Sarankan jenis proyek yang relevan untuk dikerjakan.
+    ` : !hasCerts ? `
+    ⚠️ PERHATIAN: Mahasiswa ini BELUM memiliki sertifikasi (hanya memiliki proyek portofolio).
+    - JANGAN menyebutkan sertifikasi apapun seolah-olah sudah ada.
+    - Sarankan sertifikasi yang relevan untuk diambil.
+    ` : ''}
     Wajib membungkus setiap bagian keluaran Anda tepat di dalam tag XML berikut (tanpa salam pembuka/penutup lainnya di luar tag ini):
     <kecocokan>
     (Tabel analisis kecocokan kompetensi aktual vs target posisi 1-5 saja, tanpa persen)
@@ -175,7 +214,9 @@ const App = () => {
     (Daftar poin rekomendasi skill/kompetensi kritis yang perlu ditingkatkan berdasarkan gap)
     </rekomendasi>
     <keselarasan>
-    (Analisis singkat keselarasan target karir dengan proyek & sertifikasi, serta saran alternatif karir jika diperlukan)
+    (${!hasProjects && !hasCerts 
+      ? 'Nyatakan bahwa mahasiswa BELUM memiliki portofolio proyek maupun sertifikasi. Lalu berikan rekomendasi proyek dan sertifikasi konkret yang harus dibangun untuk menunjang karir target.' 
+      : 'Analisis singkat keselarasan target karir dengan proyek & sertifikasi yang dimiliki, serta saran alternatif karir jika diperlukan'})
     </keselarasan>`;
 
     const certsText = (user.certifications || []).map((c) => `- ${c.title} (Penerbit: ${c.issuer}, Skill: ${c.skills?.join(', ') || '-'})`).join('\n');
@@ -198,12 +239,13 @@ const App = () => {
       - Work Ethic: ${user.skills.workEthic || 0}
 
       Sertifikasi yang Dimiliki:
-      ${certsText || "Belum mengunggah sertifikasi."}
+      ${hasCerts ? certsText : "⚠️ KOSONG — Mahasiswa ini BELUM mengunggah sertifikasi apapun. JANGAN mengarang sertifikasi."}
 
       Projek Portofolio yang Dimiliki:
-      ${projsText || "Belum mengunggah projek portofolio."}
+      ${hasProjects ? projsText : "⚠️ KOSONG — Mahasiswa ini BELUM mengunggah projek portofolio apapun. JANGAN mengarang proyek."}
 
       Berdasarkan data profil di atas, berikan analisis ringkas dalam Bahasa Indonesia yang dibungkus dengan tag XML <kecocokan>, <rekomendasi>, dan <keselarasan> sesuai instruksi system.
+      ${!hasProjects && !hasCerts ? 'INGAT: Mahasiswa ini TIDAK memiliki proyek dan sertifikasi. Jangan sebutkan proyek/sertifikasi apapun seolah ada.' : ''}
     `;
 
     const models = [
@@ -252,6 +294,10 @@ const App = () => {
               education: user.education || "",
               skills: user.skills,
               summary: aiText,
+              hasProjects: hasProjects,
+              hasCerts: hasCerts,
+              projectCount: (user.projects || []).length,
+              certCount: (user.certifications || []).length,
               generatedAt: new Date(),
             }, { merge: true });
             console.log("✅ Rangkuman AI tersimpan ke Firestore!");

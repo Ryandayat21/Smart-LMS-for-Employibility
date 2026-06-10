@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Download, BrainCircuit, Trophy, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Sparkles, Download, BrainCircuit, Trophy, CheckCircle2, ArrowRight, SkipForward, Info } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
   ResponsiveContainer, Tooltip, Legend 
@@ -243,7 +243,9 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
   const isVoiceDone = !!(user?.skills?.communication && user.skills.communication > 0);
   const isProjectsDone = !!(user?.projects && user.projects.length > 0);
   const isCertsDone = !!(user?.certifications && user.certifications.length > 0);
-  const canRunAi = isPgDone && isVoiceDone && isProjectsDone && isCertsDone;
+  // AI analysis only requires assessments (PG + Voice) — portfolio is optional
+  const canRunAi = isPgDone && isVoiceDone;
+  const hasPortfolio = isProjectsDone || isCertsDone;
 
   const milestones = [
     {
@@ -251,6 +253,7 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
       title: "Asesmen Awal (PG)",
       desc: "Menyelesaikan tes tertulis pilihan ganda untuk pemetaan awal 10 aspek kompetensi.",
       isCompleted: isPgDone,
+      isOptional: false,
       action: () => setActiveTab('assessment'),
       label: "Mulai Tes PG",
     },
@@ -259,14 +262,16 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
       title: "AI Voice Interview",
       desc: "Menyelesaikan simulasi wawancara verbal interaktif menggunakan mikrofon & AI Voice.",
       isCompleted: isVoiceDone,
+      isOptional: false,
       action: () => setActiveTab('assessment'),
       label: "Mulai Wawancara",
     },
     {
       id: 3,
       title: "Portofolio Proyek",
-      desc: "Mengunggah link hasil karya proyek aplikasi di halaman profil.",
+      desc: "Opsional — unggah proyek untuk analisis AI yang lebih mendalam dan akurat.",
       isCompleted: isProjectsDone,
+      isOptional: true,
       action: () => {
         setActiveTab('profile');
         if (setProfileAction) setProfileAction('add_project');
@@ -276,8 +281,9 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
     {
       id: 4,
       title: "Sertifikasi Kompetensi",
-      desc: "Mengunggah sertifikasi kompetensi pendukung di halaman profil.",
+      desc: "Opsional — unggah sertifikasi untuk memperkuat profil karir Anda.",
       isCompleted: isCertsDone,
+      isOptional: true,
       action: () => {
         setActiveTab('profile');
         if (setProfileAction) setProfileAction('add_certification');
@@ -289,14 +295,18 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
       title: "Smart Analysis AI",
       desc: "Menjalankan rekomendasi AI Career Expert untuk memetakan gap kesiapan karir.",
       isCompleted: !!aiResult && canRunAi,
+      isOptional: false,
       action: runAiAnalysis,
       label: "Mulai Analisis AI",
     }
   ];
 
+  // Count completed OR skipped-optional milestones for progress
+  const effectiveCompleted = milestones.filter(m => m.isCompleted || (m.isOptional && canRunAi)).length;
   const completedCount = milestones.filter(m => m.isCompleted).length;
-  const progressPercent = Math.round((completedCount / milestones.length) * 100);
-  const activeNodeIndex = milestones.findIndex(m => !m.isCompleted);
+  const progressPercent = Math.round((effectiveCompleted / milestones.length) * 100);
+  // Active node: skip optional milestones when assessments are done
+  const activeNodeIndex = milestones.findIndex(m => !m.isCompleted && !m.isOptional);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -371,6 +381,9 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
 
           {milestones.map((m, idx) => {
             const isActive = idx === activeNodeIndex;
+            // Optional milestones are "unlocked" once assessments are done
+            const isOptionalUnlocked = m.isOptional && canRunAi;
+            const isSkippable = m.isOptional && !m.isCompleted && canRunAi;
             return (
               <div 
                 key={m.id} 
@@ -379,6 +392,8 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                     ? 'border-emerald-100 bg-emerald-50/5' 
                     : isActive 
                     ? 'border-indigo-500 bg-white ring-2 ring-indigo-50 shadow-xs' 
+                    : isOptionalUnlocked
+                    ? 'border-amber-200 bg-amber-50/10'
                     : 'border-slate-100 bg-slate-50/20 opacity-55'
                 }`}
               >
@@ -389,24 +404,35 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                       ? 'bg-emerald-500 text-white' 
                       : isActive 
                       ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' 
+                      : isOptionalUnlocked
+                      ? 'bg-amber-100 text-amber-600'
                       : 'bg-slate-200 text-slate-500'
                   }`}>
-                    {m.isCompleted ? <CheckCircle2 size={14} /> : m.id}
+                    {m.isCompleted ? <CheckCircle2 size={14} /> : m.isOptional ? <SkipForward size={12} /> : m.id}
                   </div>
-                  <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                    m.isCompleted 
-                      ? 'bg-emerald-50 text-emerald-600' 
-                      : isActive 
-                      ? 'bg-indigo-50 text-indigo-600' 
-                      : 'bg-slate-100 text-slate-400'
-                  }`}>
-                    {m.isCompleted ? "Selesai" : isActive ? "Aktif" : "Terkunci"}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    {m.isOptional && (
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500 border border-amber-100">
+                        Opsional
+                      </span>
+                    )}
+                    <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                      m.isCompleted 
+                        ? 'bg-emerald-50 text-emerald-600' 
+                        : isActive 
+                        ? 'bg-indigo-50 text-indigo-600' 
+                        : isOptionalUnlocked
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {m.isCompleted ? "Selesai" : isActive ? "Aktif" : isOptionalUnlocked ? "Dilewati" : "Terkunci"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Node Middle: Title and Desc */}
                 <div className="space-y-1 flex-1">
-                  <h4 className={`text-sm sm:text-base font-extrabold truncate ${m.isCompleted ? 'text-slate-700' : isActive ? 'text-slate-800' : 'text-slate-400'}`}>
+                  <h4 className={`text-sm sm:text-base font-extrabold truncate ${m.isCompleted ? 'text-slate-700' : isActive ? 'text-slate-800' : isOptionalUnlocked ? 'text-amber-700' : 'text-slate-400'}`}>
                     {m.title}
                   </h4>
                   <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-3" title={m.desc}>
@@ -421,10 +447,19 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                       <CheckCircle2 size={12} />
                       Selesai
                     </div>
+                  ) : isSkippable ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={m.action}
+                        className="flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200"
+                      >
+                        {m.label}
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={m.action}
-                      disabled={idx > activeNodeIndex}
+                      disabled={!isActive && !isOptionalUnlocked && idx > activeNodeIndex}
                       className={`w-full py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                         isActive 
                           ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs' 
@@ -472,7 +507,7 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                 onClick={runAiAnalysis}
                 disabled={isAnalysing || !canRunAi}
                 className="flex items-center justify-center p-2 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 rounded-xl transition-colors cursor-pointer"
-                title={canRunAi ? "Analisis Ulang" : "Lengkapi 4 milestone prasyarat terlebih dahulu"}
+                title={canRunAi ? "Analisis Ulang" : "Lengkapi asesmen awal terlebih dahulu"}
               >
                 <BrainCircuit size={16} className={isAnalysing ? "animate-spin" : ""} />
               </button>
@@ -492,7 +527,7 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                 <span className="text-[10px] font-bold text-slate-400 tracking-wider font-mono">ADVISOR_REPORT.md</span>
               </div>
               
-              {aiResult && reportTabs.length > 0 && canRunAi && (
+              {aiResult && reportTabs.length > 0 && (
                 <div className="flex flex-wrap gap-1 bg-slate-200/60 p-1 rounded-xl border border-slate-200/40">
                   {reportTabs.map(tab => (
                     <button
@@ -523,13 +558,13 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                       Smart Analysis AI Terkunci 🔒
                     </h4>
                     <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                      Evaluasi Smart Analysis AI didasarkan murni pada perpaduan nilai asesmen, portofolio proyek, dan sertifikasi kompetensi Anda. Selesaikan 4 milestone persiapan karir sebelumnya untuk membuka fitur ini.
+                      Selesaikan 2 asesmen wajib di bawah ini untuk membuka analisis AI. Portofolio proyek dan sertifikasi bersifat opsional.
                     </p>
                   </div>
 
                   {/* Checklist Milestones */}
                   <div className="w-full max-w-sm bg-white border border-slate-200/60 rounded-2xl p-5 text-left space-y-3.5 shadow-xs">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 pb-2">Status Prasyarat Karir</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 pb-2">Prasyarat Wajib</p>
                     
                     <div className="space-y-3">
                       {/* Milestone 1 */}
@@ -561,65 +596,69 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                           <button onClick={() => setActiveTab('assessment')} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Mulai Interview →</button>
                         )}
                       </div>
+                    </div>
 
+                    {/* Optional Milestones */}
+                    <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider border-t border-slate-100 pt-3 mt-3 flex items-center gap-1">
+                      <Info size={10} /> Opsional — Untuk Analisis Lebih Akurat
+                    </p>
+                    <div className="space-y-3">
                       {/* Milestone 3 */}
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isProjectsDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isProjectsDone ? 'bg-emerald-500 text-white' : 'bg-amber-50 text-amber-400'}`}>
                             {isProjectsDone ? "✓" : "3"}
                           </div>
-                          <span className={isProjectsDone ? "text-slate-400 line-through" : "text-slate-700"}>Portofolio Proyek</span>
+                          <span className={isProjectsDone ? "text-slate-400 line-through" : "text-slate-500"}>Portofolio Proyek</span>
                         </div>
                         {isProjectsDone ? (
                           <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">Selesai</span>
                         ) : (
-                          <button onClick={() => {
-                            setActiveTab('profile');
-                            if (setProfileAction) setProfileAction('add_project');
-                          }} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Unggah Proyek →</button>
+                          <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">Bisa dilewati</span>
                         )}
                       </div>
 
                       {/* Milestone 4 */}
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCertsDone ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCertsDone ? 'bg-emerald-500 text-white' : 'bg-amber-50 text-amber-400'}`}>
                             {isCertsDone ? "✓" : "4"}
                           </div>
-                          <span className={isCertsDone ? "text-slate-400 line-through" : "text-slate-700"}>Sertifikasi Kompetensi</span>
+                          <span className={isCertsDone ? "text-slate-400 line-through" : "text-slate-500"}>Sertifikasi Kompetensi</span>
                         </div>
                         {isCertsDone ? (
                           <span className="text-[10px] font-extrabold text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">Selesai</span>
                         ) : (
-                          <button onClick={() => {
-                            setActiveTab('profile');
-                            if (setProfileAction) setProfileAction('add_certification');
-                          }} className="text-[10px] font-extrabold text-indigo-600 hover:underline cursor-pointer">Unggah Sertifikat →</button>
+                          <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">Bisa dilewati</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Primary CTA for next incomplete item */}
+                  {/* Primary CTA for next incomplete required item */}
                   <button
-                    onClick={() => {
-                      if (!isPgDone || !isVoiceDone) {
-                        setActiveTab('assessment');
-                      } else if (!isProjectsDone) {
-                        setActiveTab('profile');
-                        if (setProfileAction) setProfileAction('add_project');
-                      } else if (!isCertsDone) {
-                        setActiveTab('profile');
-                        if (setProfileAction) setProfileAction('add_certification');
-                      }
-                    }}
+                    onClick={() => setActiveTab('assessment')}
                     className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
-                    Lengkapi Prasyarat Sekarang
+                    Mulai Asesmen Sekarang
                   </button>
                 </div>
               ) : aiResult ? (
                 <div className="space-y-4">
+                  {/* Tip banner when no portfolio */}
+                  {!hasPortfolio && (
+                    <div className="flex items-start gap-3 p-3.5 bg-amber-50/80 border border-amber-200/60 rounded-xl">
+                      <div className="p-1.5 bg-amber-100 rounded-lg text-amber-600 mt-0.5 shrink-0">
+                        <Info size={12} />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-amber-800">Tingkatkan Akurasi Analisis</p>
+                        <p className="text-[11px] text-amber-700/80 leading-relaxed">
+                          Analisis ini didasarkan pada skor asesmen saja. Unggah <button onClick={() => { setActiveTab('profile'); if (setProfileAction) setProfileAction('add_project'); }} className="font-bold underline cursor-pointer text-amber-800 hover:text-amber-900">proyek portofolio</button> dan <button onClick={() => { setActiveTab('profile'); if (setProfileAction) setProfileAction('add_certification'); }} className="font-bold underline cursor-pointer text-amber-800 hover:text-amber-900">sertifikasi</button> untuk mendapatkan rekomendasi yang lebih mendalam dan relevan.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   {reportTabs.map(tab => {
                     if (tab.id !== activeReportTab) return null;
 
@@ -721,22 +760,38 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center text-center text-slate-400 py-8 space-y-4">
-                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-full text-indigo-500 animate-pulse">
+                  <div className={`p-4 rounded-full ${isAnalysing ? 'bg-indigo-50 border border-indigo-100 text-indigo-500 animate-pulse' : 'bg-emerald-50 border border-emerald-100 text-emerald-500'}`}>
                     <Sparkles size={28} />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-slate-800 font-extrabold text-sm">AI Analysis Report Ready</p>
-                    <p className="text-xs text-slate-500 leading-relaxed max-w-[240px] mx-auto font-medium">
-                      {isAnalysing ? "Sedang memproses analisis AI..." : "Selesaikan seluruh langkah peta jalan kesiapan karir di atas untuk membuka rekomendasi kustom Anda."}
+                    <p className="text-slate-800 font-extrabold text-sm">
+                      {isAnalysing ? "Menganalisis Profil Anda..." : "Siap untuk Analisis AI! 🚀"}
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed max-w-[280px] mx-auto font-medium">
+                      {isAnalysing 
+                        ? "Sedang memproses analisis AI berdasarkan data asesmen Anda..." 
+                        : !hasPortfolio 
+                        ? "Asesmen selesai! Anda dapat langsung menjalankan analisis AI, atau unggah portofolio terlebih dahulu untuk hasil yang lebih akurat."
+                        : "Semua data telah lengkap. Klik tombol di bawah untuk mendapatkan rekomendasi karir kustom Anda."
+                      }
                     </p>
                   </div>
                   
                   {!isAnalysing && (
-                    <div className="pt-3 grid grid-cols-1 gap-2 text-left text-[10px] font-bold text-slate-500 max-w-[240px] mx-auto border-t border-slate-200 w-full">
-                      <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 📊 Tabel Kualitatif Aktual vs Target</div>
-                      <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 💡 Analisis Portofolio Proyek & Sertifikat</div>
-                      <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 🎯 Alternatif Karir Yang Lebih Sesuai</div>
-                    </div>
+                    <>
+                      <button
+                        onClick={runAiAnalysis}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                      >
+                        <BrainCircuit size={14} />
+                        Jalankan Smart Analysis AI
+                      </button>
+                      <div className="pt-3 grid grid-cols-1 gap-2 text-left text-[10px] font-bold text-slate-500 max-w-[240px] mx-auto border-t border-slate-200 w-full">
+                        <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 📊 Tabel Kualitatif Aktual vs Target</div>
+                        <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 💡 Rekomendasi Peningkatan Skill</div>
+                        <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> 🎯 Keselarasan & Alternatif Karir</div>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
