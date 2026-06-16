@@ -198,7 +198,7 @@ const JoinClass = ({ user }) => {
                 Belum ada kelas yang terdaftar aktif di sistem saat ini.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 max-h-[500px] overflow-y-auto pr-2">
+              <div className="grid grid-cols-1 gap-4 max-h-125 overflow-y-auto pr-2">
                 {availableClasses.map((cls) => {
                   const isMatched = checkCareerMatch(cls, user.targetJob);
                   

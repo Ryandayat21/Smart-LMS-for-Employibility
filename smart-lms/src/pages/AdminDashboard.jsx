@@ -92,7 +92,7 @@ const AdminDashboard = ({ user, setActiveTab }) => {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {statCards.map(({ label, key, icon: Icon, color }) => (
               <div key={key} className="rounded-3xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
-                <div className={`inline-flex items-center justify-center rounded-2xl p-3 bg-gradient-to-br ${color} text-white mb-4`}>
+                <div className={`inline-flex items-center justify-center rounded-2xl p-3 bg-linear-to-br ${color} text-white mb-4`}>
                   <Icon size={18} />
                 </div>
                 <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>

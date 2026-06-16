@@ -22,6 +22,7 @@ import StudentResults from './pages/StudentResults';
 import ClassManagement from './pages/ClassManagement';
 import LMS from './pages/LMS';
 import PrintRoadmap from './components/PrintRoadmap';
+import InstructorDashboard from './pages/InstructorDashboard';
 
 const defaultSiteSettings = {
   orgName: 'Skillvora',
@@ -370,17 +371,22 @@ const App = () => {
             <div className="text-right bg-white p-3 rounded-xl shadow-sm border border-slate-100 cursor-pointer" onClick={() => setActiveTab('profile')}>
               <p className="font-bold text-slate-700">{user.name}</p>
               <p className="text-xs text-indigo-600 font-medium">
-                {user.role?.toUpperCase()}{user.role !== 'admin' ? ` | ${user.targetJob}` : ''}
+                {user.role?.toUpperCase()}{user.role !== 'admin' && user.targetJob ? ` | ${user.targetJob}` : ''}
               </p>
             </div>
           </div>
+          
           {/* Konten Berdasarkan Tab */}
           {activeTab === 'lms' && <LMS user={user} />}
           {activeTab === 'assessment' && <Assessment user={user} setActiveTab={setActiveTab} />}
           {activeTab === 'analytics' && <Analytics user={user} />}
+          
+          {/* ✅ REVISI DASHBOARD: Menyesuaikan tampilan beranda berdasarkan 3 Role secara presisi */}
           {activeTab === 'dashboard' && (
             user.role === 'admin' ? (
               <AdminDashboard user={user} setActiveTab={setActiveTab} />
+            ) : user.role === 'instructor' ? (
+              <InstructorDashboard user={user} />
             ) : (
               <Dashboard 
                 user={user}
@@ -392,6 +398,7 @@ const App = () => {
               />
             )
           )}
+          
           {activeTab === 'site-settings' && user.role === 'admin' && (
             <AdminSettings
               settings={siteSettings}
@@ -425,19 +432,23 @@ const App = () => {
               user={user} 
               profileAction={profileAction} 
               setProfileAction={setProfileAction} 
-            />
+              />
           )}
 
-          {/* Tambahan untuk Instruktur */}
+          {/* ✅ REVISI KELOLA SOAL: Memasang key dinamis agar state paket auto-reset total saat berpindah menu */}
           {activeTab === 'question-bank' && (
             user.role === 'admin' ? (
-              <AdminQuestionBank user={user} />
+              <AdminQuestionBank key={activeTab} user={user} />
             ) : (
-              <QuestionBank user={user} />
+              <AdminQuestionBank key={activeTab} user={user} /> // Pastikan memanggil komponen terupdate yang mendukung role instruktur
             )
           )}
+          
           {activeTab === 'student-results' && <StudentResults user={user} />}
           {activeTab === 'class-management' && <ClassManagement user={user} />}
+          
+          {/* ✅ REVISI SHORTCUT DASHBOARD INSTRUKTUR */}
+          {activeTab === 'instructor-dashboard' && <InstructorDashboard user={user} />}
         </main>
       </div>
 
