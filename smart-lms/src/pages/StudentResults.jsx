@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, getDoc, getDocs } from 'firebase/firestore';
 import { 
   Search, UserCheck, BarChart, GraduationCap, 
   ChevronUp, ChevronDown, X, Sparkles, 
   Calendar, Briefcase, ChevronsUpDown, BookOpen
 } from 'lucide-react';
+import { FileSpreadsheet } from 'lucide-react'; // Menggunakan ikon spreadsheet premium
+import { exportAssessmentToExcel } from '../utils/excelExport';
 
 // ══════════════════════════════════
 // KOMPONEN MODAL RANGKUMAN AI (Bawaan)
@@ -118,12 +120,13 @@ const AISummaryModal = ({ student, onClose }) => {
 };
 
 // ══════════════════════════════════
-// MAIN COMPONENT (REVISED)
+// MAIN COMPONENT
 // ══════════════════════════════════
 const StudentResults = () => {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isExporting, setIsExporting] = useState(false); // Loading state saat mendownload excel
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -174,7 +177,7 @@ const StudentResults = () => {
   };
 
   // ══════════════════════════════════
-  // LOGIKA FILTER & SORTING (REVISED)
+  // LOGIKA FILTER & SORTING
   // ══════════════════════════════════
   const processedStudents = students
     .filter(s => {
@@ -182,29 +185,21 @@ const StudentResults = () => {
       const target = (s.targetJob || "").toLowerCase();
       const search = searchTerm.toLowerCase();
       
-      // 1. Filter Input Nama / Target Karir
       const matchSearch = name.includes(search) || target.includes(search);
-
-      // 2. Filter Dropdown Kelas (Berdasarkan classCode)
       const matchClass = filterClassCode ? s.classCode === filterClassCode : true;
-
-      // 3. Filter Dropdown Target Karir
       const matchTarget = filterTargetJob ? target === filterTargetJob.toLowerCase() : true;
 
-      // 4. Filter Status Pengerjaan
       const isDone = s.skills && Object.keys(s.skills).length > 0;
       const matchStatus =
         filterStatus === 'all' ? true :
         filterStatus === 'done' ? isDone : !isDone;
 
-      // 5. Filter Rentang Tanggal Join/Registrasi (Menggunakan s.createdAt)
       let matchDate = true;
       if (s.createdAt) {
         const createdDate = s.createdAt?.toDate?.() || new Date(s.createdAt);
         if (filterDateFrom) matchDate = createdDate >= new Date(filterDateFrom);
         if (filterDateTo) matchDate = matchDate && createdDate <= new Date(filterDateTo + 'T23:59:59');
       } else if (filterDateFrom || filterDateTo) {
-        // Jika dokumen tidak punya timestamp createdAt, sembunyikan jika filter tanggal aktif
         matchDate = false;
       }
 
@@ -230,6 +225,62 @@ const StudentResults = () => {
       if (valA > valB) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
+
+  // ══════════════════════════════════
+  // ✅ LOGIKA HANDLER EXPORT EXCEL
+  // ══════════════════════════════════
+  const handleExportExcel = async () => {
+    if (processedStudents.length === 0) {
+      alert("⚠️ Tidak ada data mahasiswa hasil filter yang bisa di-export!");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const exportData = [];
+
+      // Loop data mahasiswa hasil filter untuk ditarik deskripsi AI-nya secara dinamis
+      for (const student of processedStudents) {
+        let aiExplanation = "Belum melakukan analisis AI";
+        
+        // Tarik dokumen deskripsi dari koleksi ai_summaries
+        const summaryRef = doc(db, "ai_summaries", student.id);
+        const snap = await getDoc(summaryRef);
+        if (snap.exists() && snap.data().summary) {
+          aiExplanation = snap.data().summary;
+        }
+
+        // Kalkulasi total skor pengerjaan (jika ada data map skills)
+        const totalScoreValue = student.skills 
+          ? Object.values(student.skills).reduce((sum, current) => sum + (parseInt(current) || 0), 0)
+          : 0;
+
+        // Push data komplit ke array export
+        exportData.push({
+          studentName: student.fullName || student.name || "Anonymous",
+          studentEmail: student.email || "-",
+          className: student.className || "Belum Masuk Kelas",
+          totalScore: totalScoreValue,
+          voiceScore: student.voiceScore || 0, 
+          dominantAspect: student.dominantAspect || "-",
+          recommendedJob: student.targetJob || "Belum ditentukan",
+          aiExplanation: aiExplanation
+        });
+      }
+
+      // Cari nama filter kelas terpilih untuk penamaan file excel
+      const currentClassObj = classes.find(c => c.classCode === filterClassCode);
+      const currentClassName = currentClassObj ? currentClassObj.className : "Semua_Kelas";
+
+      // Jalankan helper utils excel
+      exportAssessmentToExcel(exportData, `Asesmen_${currentClassName}`);
+    } catch (error) {
+      console.error("Gagal melakukan eksport excel:", error);
+      alert("❌ Terjadi kesalahan saat memproses file Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const uniqueTargetJobs = [...new Set(students.map(s => s.targetJob).filter(Boolean))];
   const totalDone = students.filter(s => s.skills && Object.keys(s.skills).length > 0).length;
@@ -265,7 +316,20 @@ const StudentResults = () => {
 
       {/* Filter Row Section */}
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Panel Kontrol & Filter</p>
+        {/* ✅ REVISI HEADER FILTER + ACTION BUTTON EXCEL */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-50 pb-2">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Panel Kontrol & Filter</p>
+          
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm shadow-emerald-100"
+          >
+            <FileSpreadsheet size={16} />
+            {isExporting ? "Memproses..." : "Export ke Excel"}
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* 1. Filter Nama */}
           <div className="relative">
