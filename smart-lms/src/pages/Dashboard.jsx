@@ -214,7 +214,7 @@ const Dashboard = ({ user, runAiAnalysis, aiResult, isAnalysing, setActiveTab, s
 
   const toPercent = (val) => (val ? val * 20 : 0);
   const targetJob = user?.targetJob || 'default';
-  const standards = jobStandards[targetJob] || jobStandards['default'];
+  const standards = user?.targetScores || jobStandards[targetJob] || jobStandards['default'];
 
   const skillsData = React.useMemo(() => {
     return [

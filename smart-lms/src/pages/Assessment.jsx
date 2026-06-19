@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, doc, setDoc, query, orderBy, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, query, orderBy, where, getDoc } from 'firebase/firestore';
 import { CheckCircle2, ChevronRight, ClipboardList, Sparkles, ShieldCheck, BookOpen, Target } from 'lucide-react';
 import ConversationTest from "../components/ConversationTest";
 
@@ -36,6 +36,14 @@ const Assessment = ({ user, setActiveTab }) => {
           
           if (!querySnapshot.empty) {
             setQuestionSource('package');
+            try {
+              const pkgDoc = await getDoc(doc(db, "question_packages", user.packageId));
+              if (pkgDoc.exists() && pkgDoc.data().targetScores) {
+                await setDoc(doc(db, "users", user.uid), { targetScores: pkgDoc.data().targetScores }, { merge: true });
+              }
+            } catch (e) {
+              console.error("Gagal menyimpan targetScores dari packageId:", e);
+            }
           }
         }
         
@@ -76,6 +84,15 @@ const Assessment = ({ user, setActiveTab }) => {
                   setQuestionSource('defaultPkg');
                 } else {
                   setQuestionSource('targetJob');
+                }
+                
+                // Save targetScores to user
+                if (matchedPkg.targetScores) {
+                  try {
+                    await setDoc(doc(db, "users", user.uid), { targetScores: matchedPkg.targetScores }, { merge: true });
+                  } catch (e) {
+                    console.error("Gagal menyimpan targetScores dari matchedPkg:", e);
+                  }
                 }
               }
             }

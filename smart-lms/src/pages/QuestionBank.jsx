@@ -49,6 +49,10 @@ const AdminQuestionBank = ({ user }) => {
   const [newPackageName, setNewPackageName] = useState("");
   const [newPackageTargetJob, setNewPackageTargetJob] = useState("");
   const [isCustomTargetJob, setIsCustomTargetJob] = useState(false);
+  const [newPackageTargetScores, setNewPackageTargetScores] = useState({
+    technical: 3.5, communication: 3.5, problemSolving: 3.5, leadership: 3.5, teamwork: 3.5,
+    workEthic: 3.5, digitalLiteracy: 3.5, criticalThinking: 3.5, attentionDetail: 3.5, emotionalIntel: 3.5
+  });
 
   const [questions, setQuestions] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -85,12 +89,17 @@ const AdminQuestionBank = ({ user }) => {
       await addDoc(collection(db, "question_packages"), {
         packageName: newPackageName,
         targetJob: newPackageTargetJob,
+        targetScores: newPackageTargetScores,
         createdAt: new Date(),
         createdBy: user?.uid || user?.name || 'admin'
       });
       setNewPackageName("");
       setNewPackageTargetJob("");
       setIsCustomTargetJob(false);
+      setNewPackageTargetScores({
+        technical: 3.5, communication: 3.5, problemSolving: 3.5, leadership: 3.5, teamwork: 3.5,
+        workEthic: 3.5, digitalLiteracy: 3.5, criticalThinking: 3.5, attentionDetail: 3.5, emotionalIntel: 3.5
+      });
       setIsAddingPackage(false);
       alert("✅ Paket soal berhasil dibuat!");
     } catch (error) {
@@ -345,7 +354,33 @@ const AdminQuestionBank = ({ user }) => {
               </div>
             </div>
             
-            <div className="flex justify-between items-end gap-4">
+            <div className="space-y-3 pt-2">
+              <label className="block text-xs font-bold text-slate-800 uppercase border-b border-slate-100 pb-2">
+                Konfigurasi Target Skor Industri (1-5)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {ASPECTS.map(aspect => (
+                  <div key={aspect.value} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase truncate mb-1" title={aspect.label}>
+                      {aspect.label}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1" min="1" max="5"
+                      className="w-full p-2 text-sm font-bold text-indigo-700 bg-white border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                      value={newPackageTargetScores[aspect.value]}
+                      onChange={(e) => setNewPackageTargetScores({
+                        ...newPackageTargetScores,
+                        [aspect.value]: parseFloat(e.target.value) || 0
+                      })}
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-end gap-4 mt-2">
               <div className="flex-1">
                 {isCustomTargetJob && (
                   <input

@@ -230,21 +230,40 @@ const App = () => {
     const certsText = (user.certifications || []).map((c) => `- ${c.title} (Penerbit: ${c.issuer}, Skill: ${c.skills?.join(', ') || '-'})`).join('\n');
     const projsText = (user.projects || []).map((p) => `- ${p.name}: ${p.description} (Skill: ${p.skills?.join(', ') || '-'}, Link: ${p.link || '-'})`).join('\n');
 
+    const getTarget = (aspect) => {
+      if (user.targetScores && typeof user.targetScores[aspect] === 'number') {
+        return user.targetScores[aspect];
+      }
+      const fallbacks = {
+        technical: user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 3 : 3.5,
+        communication: user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 5 : 3.5,
+        problemSolving: user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4 : 3.5,
+        leadership: user.targetJob === 'software-eng' ? 3 : user.targetJob === 'data-analyst' ? 3 : user.targetJob === 'uiux' ? 3 : user.targetJob === 'marketing' ? 4 : 3.5,
+        teamwork: user.targetJob === 'software-eng' ? 4 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5,
+        emotionalIntel: user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 3.5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4.8 : 3.5,
+        digitalLiteracy: user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5,
+        criticalThinking: user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5,
+        attentionDetail: user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 5 : user.targetJob === 'marketing' ? 3.5 : 3.5,
+        workEthic: user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 4.5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5
+      };
+      return fallbacks[aspect];
+    };
+
     const userQuery = `
       Nama: ${user.name}
       Target Pekerjaan: ${user.targetJob || "Belum ditentukan"}
       
       Skor Aspek Kompetensi (Aktual vs Target Industri Skala 1-5):
-      - Technical: ${user.skills.technical || 0} vs Target: ${user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 3 : 3.5}
-      - Communication: ${user.skills.communication || 0} vs Target: ${user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 5 : 3.5}
-      - Problem Solving: ${user.skills.problemSolving || 0} vs Target: ${user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4 : 3.5}
-      - Leadership: ${user.skills.leadership || 0} vs Target: ${user.targetJob === 'software-eng' ? 3 : user.targetJob === 'data-analyst' ? 3 : user.targetJob === 'uiux' ? 3 : user.targetJob === 'marketing' ? 4 : 3.5}
-      - Teamwork: ${user.skills.teamwork || 0} vs Target: ${user.targetJob === 'software-eng' ? 4 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5}
-      - Emotional Intel: ${user.skills.emotionalIntel || 0} vs Target: ${user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 3.5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4.8 : 3.5}
-      - Digital Literacy: ${user.skills.digitalLiteracy || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5}
-      - Critical Thinking: ${user.skills.criticalThinking || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5}
-      - Attention to Detail: ${user.skills.attentionDetail || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 5 : user.targetJob === 'marketing' ? 3.5 : 3.5}
-      - Work Ethic: ${user.skills.workEthic || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 4.5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5}
+      - Technical: ${user.skills.technical || 0} vs Target: ${getTarget('technical')}
+      - Communication: ${user.skills.communication || 0} vs Target: ${getTarget('communication')}
+      - Problem Solving: ${user.skills.problemSolving || 0} vs Target: ${getTarget('problemSolving')}
+      - Leadership: ${user.skills.leadership || 0} vs Target: ${getTarget('leadership')}
+      - Teamwork: ${user.skills.teamwork || 0} vs Target: ${getTarget('teamwork')}
+      - Emotional Intel: ${user.skills.emotionalIntel || 0} vs Target: ${getTarget('emotionalIntel')}
+      - Digital Literacy: ${user.skills.digitalLiteracy || 0} vs Target: ${getTarget('digitalLiteracy')}
+      - Critical Thinking: ${user.skills.criticalThinking || 0} vs Target: ${getTarget('criticalThinking')}
+      - Attention to Detail: ${user.skills.attentionDetail || 0} vs Target: ${getTarget('attentionDetail')}
+      - Work Ethic: ${user.skills.workEthic || 0} vs Target: ${getTarget('workEthic')}
 
       Sertifikasi yang Dimiliki:
       ${hasCerts ? certsText : "⚠️ KOSONG — Mahasiswa ini BELUM mengunggah sertifikasi apapun. JANGAN mengarang sertifikasi."}
