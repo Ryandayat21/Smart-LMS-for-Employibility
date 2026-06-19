@@ -16,6 +16,16 @@ const ASPECTS = [
   { value: "emotionalIntel", label: "Emotional Intelligence" },
 ];
 
+const JOBS = [
+  { id: "frontend", label: "Front Office / Customer Service", cat: "FO" },
+  { id: "marketing", label: "Marketing & Sales", cat: "FO" },
+  { id: "uiux", label: "UI/UX Designer", cat: "FO" },
+  { id: "software-eng", label: "Software Engineer", cat: "BO" },
+  { id: "data-analyst", label: "Data Analyst", cat: "BO" },
+  { id: "admin", label: "Administrative Assistant", cat: "BO" },
+];
+
+
 const INITIAL_FORM = {
   questionText: "",
   scenario: "",
@@ -37,6 +47,8 @@ const AdminQuestionBank = ({ user }) => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [isAddingPackage, setIsAddingPackage] = useState(false);
   const [newPackageName, setNewPackageName] = useState("");
+  const [newPackageTargetJob, setNewPackageTargetJob] = useState("");
+  const [isCustomTargetJob, setIsCustomTargetJob] = useState(false);
 
   const [questions, setQuestions] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -72,10 +84,13 @@ const AdminQuestionBank = ({ user }) => {
     try {
       await addDoc(collection(db, "question_packages"), {
         packageName: newPackageName,
+        targetJob: newPackageTargetJob,
         createdAt: new Date(),
         createdBy: user?.uid || user?.name || 'admin'
       });
       setNewPackageName("");
+      setNewPackageTargetJob("");
+      setIsCustomTargetJob(false);
       setIsAddingPackage(false);
       alert("✅ Paket soal berhasil dibuat!");
     } catch (error) {
@@ -292,21 +307,61 @@ const AdminQuestionBank = ({ user }) => {
         </div>
 
         {isAddingPackage && (
-          <form onSubmit={handleCreatePackage} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Nama Paket Soal</label>
-              <input
-                type="text"
-                placeholder="Contoh: Asesmen Teknik Informatika A"
-                className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                value={newPackageName}
-                onChange={(e) => setNewPackageName(e.target.value)}
-                required
-              />
+          <form onSubmit={handleCreatePackage} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-4">
+            <div className="flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Nama Paket Soal</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Asesmen Teknik Informatika A"
+                  className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  value={newPackageName}
+                  onChange={(e) => setNewPackageName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Target Pekerjaan (Career Path)</label>
+                <select 
+                  required={!isCustomTargetJob}
+                  className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  value={isCustomTargetJob ? "custom" : newPackageTargetJob}
+                  onChange={(e) => {
+                    if (e.target.value === "custom") {
+                      setIsCustomTargetJob(true);
+                      setNewPackageTargetJob("");
+                    } else {
+                      setIsCustomTargetJob(false);
+                      setNewPackageTargetJob(e.target.value);
+                    }
+                  }}
+                >
+                  <option value="">-- Pilih Target Job --</option>
+                  {JOBS.map(job => (
+                    <option key={job.id} value={job.id}>{job.label}</option>
+                  ))}
+                  <option value="custom">Lainnya (Input Manual)</option>
+                </select>
+              </div>
             </div>
-            <button type="submit" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all">
-              Buat Paket
-            </button>
+            
+            <div className="flex justify-between items-end gap-4">
+              <div className="flex-1">
+                {isCustomTargetJob && (
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ketik target pekerjaan..."
+                    className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    value={newPackageTargetJob}
+                    onChange={(e) => setNewPackageTargetJob(e.target.value)}
+                  />
+                )}
+              </div>
+              <button type="submit" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all whitespace-nowrap h-[50px]">
+                Buat Paket
+              </button>
+            </div>
           </form>
         )}
 
@@ -332,6 +387,7 @@ const AdminQuestionBank = ({ user }) => {
                   </button>
                 </div>
                 <h3 className="font-bold text-slate-800 text-lg">{pkg.packageName}</h3>
+                <p className="text-xs font-semibold text-indigo-600 mt-1 capitalize">{pkg.targetJob?.replace('-', ' ') || 'Umum'}</p>
                 <p className="text-xs text-slate-400 mt-2">Dibuat oleh: {pkg.createdBy || 'admin'}</p>
               </div>
             ))

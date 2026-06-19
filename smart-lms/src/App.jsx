@@ -216,7 +216,7 @@ const App = () => {
     ` : ''}
     Wajib membungkus setiap bagian keluaran Anda tepat di dalam tag XML berikut (tanpa salam pembuka/penutup lainnya di luar tag ini):
     <kecocokan>
-    (Tabel analisis kecocokan kompetensi aktual vs target posisi 1-5 saja, tanpa persen)
+    (Wajib berupa Tabel Markdown dengan 4 kolom persis: "Kompetensi", "Skor Aktual", "Skor Target Industri", dan "Gap". Isi skor dalam skala 1-5 tanpa simbol persen)
     </kecocokan>
     <rekomendasi>
     (Daftar poin rekomendasi skill/kompetensi kritis yang perlu ditingkatkan berdasarkan gap)
@@ -234,17 +234,17 @@ const App = () => {
       Nama: ${user.name}
       Target Pekerjaan: ${user.targetJob || "Belum ditentukan"}
       
-      Skor Aspek Kompetensi (Skala 1-5):
-      - Technical: ${user.skills.technical || 0}
-      - Communication: ${user.skills.communication || 0}
-      - Problem Solving: ${user.skills.problemSolving || 0}
-      - Leadership: ${user.skills.leadership || 0}
-      - Teamwork: ${user.skills.teamwork || 0}
-      - Emotional Intel: ${user.skills.emotionalIntel || 0}
-      - Digital Literacy: ${user.skills.digitalLiteracy || 0}
-      - Critical Thinking: ${user.skills.criticalThinking || 0}
-      - Attention to Detail: ${user.skills.attentionDetail || 0}
-      - Work Ethic: ${user.skills.workEthic || 0}
+      Skor Aspek Kompetensi (Aktual vs Target Industri Skala 1-5):
+      - Technical: ${user.skills.technical || 0} vs Target: ${user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 3 : 3.5}
+      - Communication: ${user.skills.communication || 0} vs Target: ${user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 5 : 3.5}
+      - Problem Solving: ${user.skills.problemSolving || 0} vs Target: ${user.targetJob === 'software-eng' ? 5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4 : 3.5}
+      - Leadership: ${user.skills.leadership || 0} vs Target: ${user.targetJob === 'software-eng' ? 3 : user.targetJob === 'data-analyst' ? 3 : user.targetJob === 'uiux' ? 3 : user.targetJob === 'marketing' ? 4 : 3.5}
+      - Teamwork: ${user.skills.teamwork || 0} vs Target: ${user.targetJob === 'software-eng' ? 4 : user.targetJob === 'data-analyst' ? 4 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5}
+      - Emotional Intel: ${user.skills.emotionalIntel || 0} vs Target: ${user.targetJob === 'software-eng' ? 3.5 : user.targetJob === 'data-analyst' ? 3.5 : user.targetJob === 'uiux' ? 4 : user.targetJob === 'marketing' ? 4.8 : 3.5}
+      - Digital Literacy: ${user.skills.digitalLiteracy || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5}
+      - Critical Thinking: ${user.skills.criticalThinking || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4 : 3.5}
+      - Attention to Detail: ${user.skills.attentionDetail || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 5 : user.targetJob === 'uiux' ? 5 : user.targetJob === 'marketing' ? 3.5 : 3.5}
+      - Work Ethic: ${user.skills.workEthic || 0} vs Target: ${user.targetJob === 'software-eng' ? 4.5 : user.targetJob === 'data-analyst' ? 4.5 : user.targetJob === 'uiux' ? 4.5 : user.targetJob === 'marketing' ? 4.5 : 3.5}
 
       Sertifikasi yang Dimiliki:
       ${hasCerts ? certsText : "⚠️ KOSONG — Mahasiswa ini BELUM mengunggah sertifikasi apapun. JANGAN mengarang sertifikasi."}
@@ -253,6 +253,7 @@ const App = () => {
       ${hasProjects ? projsText : "⚠️ KOSONG — Mahasiswa ini BELUM mengunggah projek portofolio apapun. JANGAN mengarang proyek."}
 
       Berdasarkan data profil di atas, berikan analisis ringkas dalam Bahasa Indonesia yang dibungkus dengan tag XML <kecocokan>, <rekomendasi>, dan <keselarasan> sesuai instruksi system.
+      Di dalam <kecocokan>, BUATLAH TABEL MARKDOWN (4 kolom: Kompetensi, Skor Aktual, Skor Target Industri, Gap) yang membandingkan semua 10 aspek di atas.
       ${!hasProjects && !hasCerts ? 'INGAT: Mahasiswa ini TIDAK memiliki proyek dan sertifikasi. Jangan sebutkan proyek/sertifikasi apapun seolah ada.' : ''}
     `;
 

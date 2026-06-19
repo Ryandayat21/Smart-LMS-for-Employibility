@@ -12,6 +12,7 @@ const SetupProfile = ({ user, onComplete, onLogout }) => {
     phone: "",
     email: user.email || ""
   });
+  const [isCustomJob, setIsCustomJob] = useState(false);
   const [issubmitting, setIsSubmitting] = useState(false);
 
   const jobs = [
@@ -115,16 +116,35 @@ const SetupProfile = ({ user, onComplete, onLogout }) => {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Pekerjaan Impian</label>
               <select 
-                required
+                required={!isCustomJob}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
-                value={formData.targetJob}
-                onChange={(e) => setFormData({...formData, targetJob: e.target.value})}
+                value={isCustomJob ? "custom" : formData.targetJob}
+                onChange={(e) => {
+                  if (e.target.value === "custom") {
+                    setIsCustomJob(true);
+                    setFormData({...formData, targetJob: ""});
+                  } else {
+                    setIsCustomJob(false);
+                    setFormData({...formData, targetJob: e.target.value});
+                  }
+                }}
               >
                 <option value="">-- Pilih --</option>
                 {jobs.map(job => (
                   <option key={job.id} value={job.id}>{job.label}</option>
                 ))}
+                <option value="custom">Lainnya (Input Manual)</option>
               </select>
+              {isCustomJob && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Ketik pekerjaan impianmu..."
+                  className="w-full mt-2 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900"
+                  value={formData.targetJob}
+                  onChange={(e) => setFormData({...formData, targetJob: e.target.value})}
+                />
+              )}
             </div>
           </div>
 

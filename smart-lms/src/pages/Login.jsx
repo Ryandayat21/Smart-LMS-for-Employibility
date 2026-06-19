@@ -1,6 +1,6 @@
 import { auth, googleProvider, db } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { BrainCircuit, Sparkles, User, Lock, ArrowRight, Shield, BookOpen } from 'lucide-react';
 import InstructorRegistration from './InstructorRegistration';
@@ -30,11 +30,19 @@ const Login = ({ siteSettings }) => {
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
-        // Jika benar-benar baru, buatkan dokumen kosong dengan role 'user'
+        // Cek apakah email ini disetujui sebagai instruktur
+        let initialRole = "user";
+        const appQuery = query(collection(db, "instructor_applications"), where("email", "==", user.email), where("status", "==", "approved"));
+        const appSnap = await getDocs(appQuery);
+        if (!appSnap.empty) {
+          initialRole = "instructor";
+        }
+
+        // Jika benar-benar baru, buatkan dokumen kosong
         await setDoc(docRef, {
           name: user.displayName,
           email: user.email,
-          role: "user", // Default role
+          role: initialRole,
           targetJob: "", // Akan diisi di SetupProfile
           skills: {
             technical: 0, digitalLiteracy: 0, communication: 0,
@@ -43,6 +51,11 @@ const Login = ({ siteSettings }) => {
             attentionDetail: 0, workEthic: 0
           }
         });
+      } else {
+        // Jika user sudah ada, biarkan role mereka sesuai database.
+        // Jika admin menurunkan role dari instruktur ke user, kita tidak boleh
+        // menimpanya kembali menjadi instruktur di sini.
+        // Approval admin sudah secara otomatis mengupdate role jika user sudah ada.
       }
       // Reload to trigger auth state change
       window.location.reload();

@@ -39,25 +39,50 @@ const Assessment = ({ user, setActiveTab }) => {
           }
         }
         
-        // Prioritas 2: Asesmen Awal berdasarkan Target Job
-        if ((!querySnapshot || querySnapshot.empty) && user?.targetJob) {
+        // Prioritas 2: Asesmen Awal berdasarkan Target Job atau Default
+        if (!querySnapshot || querySnapshot.empty) {
           const pkgsRef = collection(db, "question_packages");
-          const q = query(pkgsRef, where("targetJob", "==", user.targetJob));
-          const pkgsSnap = await getDocs(q);
+          const pkgsSnap = await getDocs(pkgsRef);
           
           if (!pkgsSnap.empty) {
-            // Ambil paket pertama yang cocok
-            const matchedPkgId = pkgsSnap.docs[0].id;
-            const targetQuestionsRef = collection(db, "question_packages", matchedPkgId, "questions");
-            querySnapshot = await getDocs(query(targetQuestionsRef, orderBy("order", "asc")));
+            const allPkgs = pkgsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
             
-            if (!querySnapshot.empty) {
-              setQuestionSource('targetJob');
+            // Helper to normalize string (lowercase, remove all spaces)
+            const normalizeString = (str) => {
+              if (!str) return "";
+              return str.toLowerCase().replace(/\s+/g, '');
+            };
+
+            const normalizedUserJob = normalizeString(user?.targetJob);
+            
+            // Cari paket yang cocok persis (case & space insensitive)
+            let matchedPkg = null;
+            if (normalizedUserJob) {
+               matchedPkg = allPkgs.find(pkg => normalizeString(pkg.targetJob) === normalizedUserJob);
+            }
+            
+            // Jika tidak ada yang cocok, cari paket dengan targetJob 'default'
+            if (!matchedPkg) {
+               matchedPkg = allPkgs.find(pkg => normalizeString(pkg.targetJob) === "default");
+            }
+            
+            if (matchedPkg) {
+              const targetQuestionsRef = collection(db, "question_packages", matchedPkg.id, "questions");
+              querySnapshot = await getDocs(query(targetQuestionsRef, orderBy("order", "asc")));
+              
+              if (!querySnapshot.empty) {
+                // Determine source for display
+                if (normalizeString(matchedPkg.targetJob) === "default") {
+                  setQuestionSource('defaultPkg');
+                } else {
+                  setQuestionSource('targetJob');
+                }
+              }
             }
           }
         }
 
-        // Fallback: Direct Assessment (Umum / flat collection)
+        // Fallback Terakhir: Direct Assessment (Umum / flat collection) jika paket default tidak ada
         if (!querySnapshot || querySnapshot.empty) {
           querySnapshot = await getDocs(collection(db, "questions"));
           setQuestionSource('direct');

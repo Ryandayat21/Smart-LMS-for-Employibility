@@ -280,24 +280,29 @@ export async function getPendingInstructorApplications() {
 }
 
 export async function approveInstructorApplication(applicationId, applicationData) {
-  // Create new user with role 'instructor'
-  const newUser = await addDoc(collection(db, "users"), {
-    email: applicationData.email,
-    displayName: applicationData.displayName || applicationData.email,
-    role: "instructor",
-    createdAt: new Date(),
-    approvedFrom: applicationId
-  });
-
   // Update application status
   const docRef = doc(db, "instructor_applications", applicationId);
   await updateDoc(docRef, {
     status: "approved",
-    approvedAt: new Date(),
-    approvedUserId: newUser.id
+    approvedAt: new Date()
   });
 
-  return newUser;
+  // Cek apakah user sudah ada di Firestore berdasarkan email
+  const q = query(collection(db, "users"), where("email", "==", applicationData.email));
+  const snapshot = await getDocs(q);
+
+  let userResult = null;
+  if (!snapshot.empty) {
+    const userDoc = snapshot.docs[0];
+    await updateDoc(doc(db, "users", userDoc.id), {
+      role: "instructor"
+    });
+    userResult = { id: userDoc.id, ...userDoc.data(), role: "instructor" };
+  }
+
+  // Jika user belum ada, tidak perlu buat dokumen baru dengan ID acak.
+  // Dokumen akan dibuat otomatis saat instruktur login via Google Auth di Login.jsx.
+  return userResult;
 }
 
 export async function rejectInstructorApplication(applicationId) {

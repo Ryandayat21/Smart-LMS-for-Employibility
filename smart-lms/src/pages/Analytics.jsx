@@ -96,9 +96,6 @@ const jobStandards = {
 };
 
 const Analytics = ({ user }) => {
-  const [aiSummary, setAiSummary] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
 
   const toPercent = (val) => (val ? val * 20 : 0);
 
@@ -118,144 +115,7 @@ const Analytics = ({ user }) => {
     { subject: 'Ethics',        A: toPercent(user.skills?.workEthic),             B: toPercent(standards.workEthic),             fullMark: 100 },
   ];
 
-  // ══════════════════════════════════
-  // 1. Load rangkuman dari Firestore kalau sudah ada
-  // ══════════════════════════════════
-  useEffect(() => {
-    const loadSummary = async () => {
-      try {
-        const summaryRef = doc(db, "ai_summaries", user.uid);
-        const snap = await getDoc(summaryRef);
-        if (snap.exists() && snap.data().summary) {
-          setAiSummary(snap.data().summary);
-          setIsSaved(true);
-        }
-      } catch (e) {
-        console.error("Gagal load rangkuman:", e);
-      }
-    };
 
-    if (user?.uid) loadSummary();
-  }, [user?.uid]);
-
-  // ══════════════════════════════════
-  // 2. Generate + Simpan Rangkuman AI
-  // ══════════════════════════════════
-  const generateAndSaveSummary = async () => {
-    if (!user?.skills || Object.keys(user.skills).length === 0) {
-      alert("Kamu belum menyelesaikan assessment. Selesaikan assessment dulu!");
-      return;
-    }
-
-    setIsGenerating(true);
-    setIsSaved(false);
-
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    const models = [
-      "meta-llama/llama-3.3-70b-instruct:free",
-      "stepfun/step-3.5-flash:free",
-      "google/gemma-3-27b-it:free",
-    ];
-
-    const certsText = (user.certifications || []).map((c) => `- ${c.title} (Penerbit: ${c.issuer}, Skill: ${c.skills?.join(', ') || '-'})`).join('\n');
-    const projsText = (user.projects || []).map((p) => `- ${p.name}: ${p.description} (Skill: ${p.skills?.join(', ') || '-'}, Link: ${p.link || '-'})`).join('\n');
-
-    const prompt = `
-    Kamu adalah Career Advisor profesional dari Smart LMS. Buat analisis kesiapan karir singkat dan objektif tentang profil mahasiswa berikut.
-
-    Data Mahasiswa:
-    - Nama: ${user.fullName || user.name}
-    - Target Karir: ${user.targetJob || "Belum ditentukan"}
-    - Pendidikan: ${user.education || "Tidak diketahui"}
-    - Skor Skill (skala 1-5):
-      • Technical: ${user.skills?.technical || 0}
-      • Communication: ${user.skills?.communication || 0}
-      • Problem Solving: ${user.skills?.problemSolving || 0}
-      • Leadership: ${user.skills?.leadership || 0}
-      • Teamwork: ${user.skills?.teamwork || 0}
-      • Work Ethic: ${user.skills?.workEthic || 0}
-      • Digital Literacy: ${user.skills?.digitalLiteracy || 0}
-      • Critical Thinking: ${user.skills?.criticalThinking || 0}
-      • Attention to Detail: ${user.skills?.attentionDetail || 0}
-      • Emotional Intelligence: ${user.skills?.emotionalIntel || 0}
-
-    Sertifikasi yang Dimiliki:
-    ${certsText || "Belum mengunggah sertifikasi."}
-
-    Projek Portofolio yang Dimiliki:
-    ${projsText || "Belum mengunggah projek portofolio."}
-
-    Buat analisis kesiapan karir dalam Bahasa Indonesia (maksimal 200 kata) yang wajib mencakup:
-    1. Rekomendasi konkret mengenai kompetensi/skill kritis yang paling mendesak untuk ditingkatkan.
-    2. Analisis kesesuaian target karir ${user.targetJob} dengan profil portofolio projek dan sertifikasi di atas. Serta berikan ulasan apakah pilihan karir ini sudah cocok, atau berikan saran alternatif karir lain yang lebih selaras dengan kompetensi mereka.
-
-    Format: paragraf terstruktur atau poin-poin singkat yang user-friendly dan profesional.
-    `.trim();
-
-    let generatedText = "";
-
-    for (const model of models) {
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { 
-                role: "system", 
-                content: "Kamu adalah Career Advisor profesional. Berikan rangkuman singkat, padat, dan objektif dalam Bahasa Indonesia." 
-              },
-              { role: "user", content: prompt }
-            ]
-          })
-        });
-
-        if (!response.ok) continue;
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) {
-          generatedText = text;
-          break;
-        }
-      } catch (e) {
-        console.warn(`Model ${model} gagal:`, e);
-        continue;
-      }
-    }
-
-    if (!generatedText) {
-      alert("Gagal generate rangkuman. Coba lagi.");
-      setIsGenerating(false);
-      return;
-    }
-
-    // ✅ Tampilkan di UI
-    setAiSummary(generatedText);
-
-    // ✅ Simpan ke Firestore collection "ai_summaries"
-    try {
-      const summaryRef = doc(db, "ai_summaries", user.uid);
-      await setDoc(summaryRef, {
-        uid: user.uid,
-        name: user.fullName || user.name,
-        targetJob: user.targetJob || "",
-        education: user.education || "",
-        skills: user.skills,
-        summary: generatedText,
-        generatedAt: new Date(),
-      });
-      setIsSaved(true);
-      console.log("✅ Rangkuman tersimpan ke Firestore!");
-    } catch (e) {
-      console.error("❌ Gagal simpan rangkuman:", e);
-    }
-
-    setIsGenerating(false);
-  };
 
   const hasSkills = user?.skills && Object.keys(user.skills).length > 0;
 
@@ -353,39 +213,7 @@ const Analytics = ({ user }) => {
         </div>
       </div>
 
-      {/* AI Career Advisor Card */}
-      <div className="bg-[#111827] text-white p-8 rounded-3xl shadow-xl border border-slate-800 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex p-2.5 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20">
-              <Sparkles size={20} className={isGenerating ? "animate-spin" : ""} />
-            </span>
-            <div>
-              <h3 className="font-extrabold text-lg">AI Career Advisor</h3>
-              <p className="text-xs text-slate-400">Rekomendasi pengembangan kompetensi & keselarasan karir</p>
-            </div>
-          </div>
 
-          <button
-            onClick={generateAndSaveSummary}
-            disabled={isGenerating}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-800 disabled:border-slate-700 disabled:text-slate-500 border border-indigo-500 rounded-2xl text-xs font-bold transition-all cursor-pointer hover:shadow-lg hover:shadow-indigo-500/10"
-          >
-            <RefreshCw size={14} className={isGenerating ? "animate-spin" : ""} />
-            {isGenerating ? "Menganalisis..." : aiSummary ? "Analisis Ulang" : "Mulai Analisis AI"}
-          </button>
-        </div>
-
-        <div className="bg-slate-800/40 border border-slate-700/60 p-5 rounded-2xl">
-          {aiSummary ? (
-            <MarkdownRenderer content={aiSummary} isDark={true} />
-          ) : (
-            <div className="text-center py-6 text-slate-500 space-y-2">
-              <p className="text-xs">Klik tombol "Mulai Analisis AI" di atas untuk menganalisis keselarasan kompetensi Anda dengan target karir.</p>
-            </div>
-          )}
-        </div>
-      </div>
 
     </div>
   );

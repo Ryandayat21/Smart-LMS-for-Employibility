@@ -74,11 +74,17 @@ const AdminInstructorManagement = () => {
         return;
       }
 
-      // Create user directly
-      await createUser({
+      // Buat pendaftaran dan langsung setujui
+      const appRef = await addDoc(collection(db, "instructor_applications"), {
         email: addFormData.email,
         displayName: addFormData.displayName,
-        role: 'instructor'
+        status: "pending",
+        createdAt: new Date()
+      });
+
+      await approveInstructorApplication(appRef.id, {
+        email: addFormData.email,
+        displayName: addFormData.displayName
       });
 
       alert('✅ Instruktur berhasil ditambahkan!');

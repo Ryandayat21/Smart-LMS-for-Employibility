@@ -5,9 +5,7 @@ import { ArrowLeft, Mail, Lock, User } from 'lucide-react';
 const InstructorRegistration = ({ onBack }) => {
   const [formData, setFormData] = useState({
     displayName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    email: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,18 +24,8 @@ const InstructorRegistration = ({ onBack }) => {
     setError('');
 
     // Validasi
-    if (!formData.displayName || !formData.email || !formData.password) {
+    if (!formData.displayName || !formData.email) {
       setError('Semua field harus diisi');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Password tidak cocok');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password minimal 6 karakter');
       return;
     }
 
@@ -51,15 +39,12 @@ const InstructorRegistration = ({ onBack }) => {
     try {
       await createInstructorApplication({
         displayName: formData.displayName,
-        email: formData.email,
-        password: formData.password
+        email: formData.email
       });
       setSuccess(true);
       setFormData({
         displayName: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
+        email: ''
       });
     } catch (err) {
       setError(err.message || 'Gagal mengirim pendaftaran');
@@ -146,35 +131,11 @@ const InstructorRegistration = ({ onBack }) => {
             />
           </label>
 
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
-              <Lock size={16} />
-              Password
-            </span>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900"
-              placeholder="Minimal 6 karakter"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
-              <Lock size={16} />
-              Konfirmasi Password
-            </span>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900"
-              placeholder="Ulangi password"
-            />
-          </label>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
+            <p className="text-sm text-indigo-800 text-center">
+              Gunakan <strong>Email Google</strong> Anda. Jika disetujui, Anda dapat langsung masuk dengan "Masuk dengan Google".
+            </p>
+          </div>
 
           <button
             type="submit"
