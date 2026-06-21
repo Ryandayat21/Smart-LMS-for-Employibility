@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+// ✅ Tambahkan import 'where' dan 'query' dari firebase/firestore
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { School, Layers, Users, BarChart3, ArrowUpRight, Award, GraduationCap } from 'lucide-react';
 
 const InstructorDashboard = ({ user }) => {
@@ -13,36 +14,60 @@ const InstructorDashboard = ({ user }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Ambil data real-time / hitung total koleksi dari Firestore
-    const unsubscribeClasses = onSnapshot(collection(db, "classes"), (snapshot) => {
-      setStats(prev => ({ ...prev, totalClasses: snapshot.size }));
-    });
+    if (!user?.uid) return;
 
-    const unsubscribePackages = onSnapshot(collection(db, "question_packages"), (snapshot) => {
-      setStats(prev => ({ ...prev, totalPackages: snapshot.size }));
-    });
+    // 1. 🔍 QUERY KELAS: Hanya ambil kelas yang dibuat oleh instruktur ini
+    const qClasses = query(
+      collection(db, "classes"),
+      where("createdBy", "==", user.uid)
+    );
 
-    const unsubscribeUsers = onSnapshot(collection(db, "users"), (snapshot) => {
-      const allUsers = snapshot.docs.map(doc => doc.data());
-      // Filter hanya pengguna dengan role "user" (Mahasiswa)
-      const studentsOnly = allUsers.filter(u => u.role === 'user');
+    const unsubscribeClasses = onSnapshot(qClasses, (classSnapshot) => {
+      // Ambil semua data kelas milik instruktur ini
+      const myClasses = classSnapshot.docs.map(doc => doc.data());
+      // Ekstrak semua classCode menjadi sebuah array (e.g., ['ABCDEF', 'XYZWQR'])
+      const myClassCodes = myClasses.map(c => c.classCode).filter(Boolean);
+
+      setStats(prev => ({ ...prev, totalClasses: classSnapshot.size }));
+
+      // 2. 🔍 QUERY USER (MAHASISWA): Ambil mahasiswa untuk dicocokkan dengan kelas instruktur
+      const qUsers = query(collection(db, "users"), where("role", "==", "user"));
       
-      setStats(prev => ({ ...prev, totalStudents: studentsOnly.length }));
+      const unsubscribeUsers = onSnapshot(qUsers, (userSnapshot) => {
+        const allStudents = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Filter mahasiswa: Hanya hitung/tampilkan jika classCode mahasiswa ada di dalam kelas instruktur ini
+        const filteredStudents = allStudents.filter(student => 
+          myClassCodes.includes(student.classCode)
+        );
+
+        setStats(prev => ({ ...prev, totalStudents: filteredStudents.length }));
+        
+        // Ambil 5 mahasiswa terbaru yang berada di bawah naungan kelas instruktur ini
+        setRecentUsers(filteredStudents.slice(0, 5));
+        setIsLoading(false);
+      });
+
+      // 3. 🔍 QUERY PAKET SOAL: Jika bank soal juga diprivat per instruktur
+      const qPackages = query(
+        collection(db, "question_packages"),
+        where("createdBy", "==", user.uid) // Hapus baris ini jika paket soal mau dibikin global/bisa dilihat semua instruktur
+      );
       
-      // Ambil 5 mahasiswa terbaru yang bergabung untuk ditaruh di log aktivitas
-      const sortedStudents = studentsOnly
-        .map(doc => doc)
-        .slice(0, 5);
-      setRecentUsers(sortedStudents);
-      setIsLoading(false);
+      const unsubscribePackages = onSnapshot(qPackages, (pkgSnapshot) => {
+        setStats(prev => ({ ...prev, totalPackages: pkgSnapshot.size }));
+      });
+
+      // Cleanup sub-listeners di dalam
+      return () => {
+        unsubscribeUsers();
+        unsubscribePackages();
+      };
     });
 
-    return () => {
-      unsubscribeClasses();
-      unsubscribePackages();
-      unsubscribeUsers();
-    };
-  }, []);
+    // Cleanup main listener
+    return () => unsubscribeClasses();
+  }, [user?.uid]);
 
   if (isLoading) {
     return <div className="p-10 text-center text-slate-500 font-medium">Memuat Analisis Dashboard... ⏳</div>;
@@ -106,14 +131,14 @@ const InstructorDashboard = ({ user }) => {
           <div className="flex justify-between items-center">
             <div>
               <h3 className="font-bold text-slate-800 text-base">Aktivitas Mahasiswa Terbaru</h3>
-              <p className="text-slate-400 text-xs font-medium">Koleksi akun pendaftar teranyar di sistem.</p>
+              <p className="text-slate-400 text-xs font-medium">Koleksi akun pendaftar teranyar di sistem kelas Anda.</p>
             </div>
             <BarChart3 className="text-slate-400" size={20} />
           </div>
 
           <div className="divide-y divide-slate-50 font-medium text-sm text-slate-600">
             {recentUsers.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">Belum ada mahasiswa yang mendaftar.</div>
+              <div className="text-center py-8 text-slate-400">Belum ada mahasiswa yang bergabung di kelas Anda.</div>
             ) : (
               recentUsers.map((student, idx) => (
                 <div key={idx} className="flex justify-between items-center py-3.5 first:pt-0 last:pb-0">
@@ -141,7 +166,7 @@ const InstructorDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Kanan: Shortcut Tips & Panduan Akreditasi Startup */}
+        {/* Kanan: Shortcut Tips */}
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             <div className="bg-amber-50 text-amber-600 p-3 rounded-2xl w-fit">

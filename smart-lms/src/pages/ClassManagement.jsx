@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, where } from 'firebase/firestore';
 import { Plus, Trash2, ShieldAlert, Key, Users, BookOpen, Layers, Copy, Check } from 'lucide-react';
 
 const ClassManagement = ({ user }) => {
@@ -18,14 +18,20 @@ const ClassManagement = ({ user }) => {
 
   const isAdminOrInstructor = user?.role === 'admin' || user?.role === 'instructor';
 
-  // 1. Ambil Data Kelas secara Real-time
+  // 1. Ambil Data Kelas secara Real-time (HANYA MILIK INSTRUKTUR YANG LOGIN)
   useEffect(() => {
-    const qClass = query(collection(db, "classes"));
+    if (!user?.uid) return;
+    // 💡 REVISI: Tambahkan filter 'where' agar instruktur hanya melihat kelas bikinannya sendiri
+    const qClass = query(
+      collection(db, "classes"),
+      where("createdBy", "==", user.uid)
+    );
+
     const unsubscribe = onSnapshot(qClass, (snapshot) => {
       setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid]); // Tambahkan user?.uid ke dependency array agar memicu re-fetch saat user login
 
   // 2. Ambil List Paket Soal untuk Dropdown Pilihan
   useEffect(() => {

@@ -88,11 +88,18 @@ const App = () => {
           console.error('Gagal membuat dokumen user default:', error);
         }
       };
-
+      
       const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
-          const userData = { uid: authUser.uid, ...docSnap.data() };
-          if (!userData.role) userData.role = 'user';
+          const rawData = docSnap.data();
+          const userData = { 
+            uid: authUser.uid, 
+            ...rawData,
+            // 💡 REVISI AMAN: Pastikan array selalu ada meskipun kosong (tidak undefined)
+            projects: rawData.projects || [],
+            certifications: rawData.certifications || [],
+            role: rawData.role || 'user'
+          };
           setUser(userData);
         } else {
           createMissingUserDoc();

@@ -122,7 +122,7 @@ const AISummaryModal = ({ student, onClose }) => {
 // ══════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════
-const StudentResults = () => {
+const StudentResults = ({ user }) => {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -140,23 +140,43 @@ const StudentResults = () => {
   const [sortKey, setSortKey] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
 
-  // 1. Ambil data user mahasiswa secara Real-time
+// 1. Ambil data kelas untuk list dropdown filter (HANYA MILIK INSTRUKTUR INI)
   useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "user"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubscribe();
-  }, []);
+    if (!user?.uid) return;
 
-  // 2. Ambil data kelas untuk list dropdown filter kelas
-  useEffect(() => {
-    const qClass = query(collection(db, "classes"));
+    // Filter kelas berdasarkan instruktur yang membuat kelas tersebut
+    const qClass = query(collection(db, "classes"), where("createdBy", "==", user.uid));
     const unsubscribe = onSnapshot(qClass, (snapshot) => {
       setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid]);
+
+  // 2. Ambil data user mahasiswa secara Real-time (TERISOLASI BERDASARKAN KODE KELAS INSTRUKTUR)
+  useEffect(() => {
+    if (!user?.uid || classes.length === 0) {
+      // Jika kelas belum di-load atau instruktur tidak punya kelas, set mahasiswa ke kosong
+      setStudents([]);
+      return;
+    }
+
+    // Ambil daftar classCode dari kelas-kelas milik instruktur ini
+    const myClassCodes = classes.map(c => c.classCode).filter(Boolean);
+
+    // Ambil semua pengguna dengan role "user"
+    const q = query(collection(db, "users"), where("role", "==", "user"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // 💡 ISOLASI DATA: Hanya tampilkan mahasiswa yang classCode-nya cocok dengan kelas milik instruktur ini
+      const filteredMyStudents = allStudents.filter(student => 
+        myClassCodes.includes(student.classCode)
+      );
+      
+      setStudents(filteredMyStudents);
+    });
+    return () => unsubscribe();
+  }, [user?.uid, classes]); // Memicu ulang jika kelas instruktur berubah/ter-load
 
   // Handler Sorting Klik
   const handleSort = (key) => {
