@@ -1,16 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, query, where, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
 import { 
   Search, UserCheck, BarChart, GraduationCap, 
   ChevronUp, ChevronDown, X, Sparkles, 
   Calendar, Briefcase, ChevronsUpDown, BookOpen
 } from 'lucide-react';
-import { FileSpreadsheet } from 'lucide-react'; // Menggunakan ikon spreadsheet premium
+import { FileSpreadsheet } from 'lucide-react'; 
 import { exportAssessmentToExcel } from '../utils/excelExport';
 
+// ══════════════════════════════════════════════════════════════════
+// 💡 UTILITY FUNCTIONS FOR EXTRACTING AND PARSING AI TEXT
+// ══════════════════════════════════════════════════════════════════
+
+// 1. Membersihkan teks rangkuman agar murni berisi narasi rekomendasi saja
+const getPureSummary = (fullText) => {
+  if (!fullText) return "";
+  return fullText.replace(/<kecocokan>[\s\S]*?<\/kecocokan>/g, "").trim();
+};
+
+// 2. Memecah string tabel Markdown di dalam <kecocokan> menjadi array objek
+const extractKecocokanData = (fullText) => {
+  if (!fullText) return [];
+  
+  const match = fullText.match(/<kecocokan>([\s\S]*?)<\/kecocokan>/);
+  if (!match || !match[1]) return [];
+
+  const tableText = match[1].trim();
+  const lines = tableText.split("\n");
+  const dataRows = [];
+  
+  lines.forEach((line) => {
+    if (line.includes("|") && !line.includes("---") && !line.toLowerCase().includes("kompetensi")) {
+      const columns = line.split("|").map(col => col.trim()).filter(Boolean);
+      if (columns.length >= 3) {
+        dataRows.push({
+          kompetensi: columns[0],
+          skorAktual: columns[1],
+          skorTarget: columns[2],
+          gap: columns[3] || "0"
+        });
+      }
+    }
+  });
+  
+  return dataRows;
+};
+
 // ══════════════════════════════════
-// KOMPONEN MODAL RANGKUMAN AI (Bawaan)
+// KOMPONEN MODAL RANGKUMAN AI
 // ══════════════════════════════════
 const AISummaryModal = ({ student, onClose }) => {
   const [summary, setSummary] = useState("");
@@ -25,7 +63,8 @@ const AISummaryModal = ({ student, onClose }) => {
         const snap = await getDoc(summaryRef);
 
         if (snap.exists() && snap.data().summary) {
-          setSummary(snap.data().summary);
+          // Bersihkan modal pop-up agar hanya menampilkan teks narasi saja
+          setSummary(getPureSummary(snap.data().summary));
           const ts = snap.data().generatedAt;
           setGeneratedAt(ts?.toDate?.() || null);
         } else {
@@ -125,8 +164,9 @@ const AISummaryModal = ({ student, onClose }) => {
 const StudentResults = ({ user }) => {
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [aiSummaries, setAiSummaries] = useState({}); // State menampung cache dokumen rangkuman AI
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isExporting, setIsExporting] = useState(false); // Loading state saat mendownload excel
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,11 +180,9 @@ const StudentResults = ({ user }) => {
   const [sortKey, setSortKey] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
 
-// 1. Ambil data kelas untuk list dropdown filter (HANYA MILIK INSTRUKTUR INI)
+  // 1. Ambil data kelas untuk list dropdown filter
   useEffect(() => {
     if (!user?.uid) return;
-
-    // Filter kelas berdasarkan instruktur yang membuat kelas tersebut
     const qClass = query(collection(db, "classes"), where("createdBy", "==", user.uid));
     const unsubscribe = onSnapshot(qClass, (snapshot) => {
       setClasses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -152,31 +190,38 @@ const StudentResults = ({ user }) => {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  // 2. Ambil data user mahasiswa secara Real-time (TERISOLASI BERDASARKAN KODE KELAS INSTRUKTUR)
+  // 2. Ambil data user mahasiswa secara Real-time & preload data ai_summaries
   useEffect(() => {
     if (!user?.uid || classes.length === 0) {
-      // Jika kelas belum di-load atau instruktur tidak punya kelas, set mahasiswa ke kosong
       setStudents([]);
       return;
     }
 
-    // Ambil daftar classCode dari kelas-kelas milik instruktur ini
     const myClassCodes = classes.map(c => c.classCode).filter(Boolean);
-
-    // Ambil semua pengguna dengan role "user"
     const q = query(collection(db, "users"), where("role", "==", "user"));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // 💡 ISOLASI DATA: Hanya tampilkan mahasiswa yang classCode-nya cocok dengan kelas milik instruktur ini
       const filteredMyStudents = allStudents.filter(student => 
         myClassCodes.includes(student.classCode)
       );
       
       setStudents(filteredMyStudents);
+
+      // Preload data bimbingan AI secara real-time dari koleksi ai_summaries
+      const unsubscribeSummaries = onSnapshot(collection(db, "ai_summaries"), (sumSnapshot) => {
+        const summariesMap = {};
+        sumSnapshot.docs.forEach(doc => {
+          summariesMap[doc.id] = doc.data().summary || "";
+        });
+        setAiSummaries(summariesMap);
+      });
+
+      return () => unsubscribeSummaries();
     });
+
     return () => unsubscribe();
-  }, [user?.uid, classes]); // Memicu ulang jika kelas instruktur berubah/ter-load
+  }, [user?.uid, classes]);
 
   // Handler Sorting Klik
   const handleSort = (key) => {
@@ -188,7 +233,6 @@ const StudentResults = ({ user }) => {
     }
   };
 
-  // Icon Sort Kecil di Samping Header Tabel
   const SortButton = ({ colKey }) => {
     if (sortKey !== colKey) return <ChevronsUpDown size={12} className="text-slate-300 ml-1 inline group-hover:text-slate-400" />;
     return sortDir === 'asc'
@@ -196,9 +240,7 @@ const StudentResults = ({ user }) => {
       : <ChevronDown size={12} className="text-indigo-600 ml-1 inline" />;
   };
 
-  // ══════════════════════════════════
   // LOGIKA FILTER & SORTING
-  // ══════════════════════════════════
   const processedStudents = students
     .filter(s => {
       const name = (s.fullName || s.name || "").toLowerCase();
@@ -246,9 +288,9 @@ const StudentResults = ({ user }) => {
       return 0;
     });
 
-  // ══════════════════════════════════
-  // ✅ LOGIKA HANDLER EXPORT EXCEL
-  // ══════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════
+  // ✅ UPDATE LOGIKA HANDLER EXPORT EXCEL (TERPISAH STRUKTUR KOLOM)
+  // ══════════════════════════════════════════════════════════════════
   const handleExportExcel = async () => {
     if (processedStudents.length === 0) {
       alert("⚠️ Tidak ada data mahasiswa hasil filter yang bisa di-export!");
@@ -259,23 +301,21 @@ const StudentResults = ({ user }) => {
     try {
       const exportData = [];
 
-      // Loop data mahasiswa hasil filter untuk ditarik deskripsi AI-nya secara dinamis
       for (const student of processedStudents) {
-        let aiExplanation = "Belum melakukan analisis AI";
+        const fullSummaryText = aiSummaries[student.id] || "";
         
-        // Tarik dokumen deskripsi dari koleksi ai_summaries
-        const summaryRef = doc(db, "ai_summaries", student.id);
-        const snap = await getDoc(summaryRef);
-        if (snap.exists() && snap.data().summary) {
-          aiExplanation = snap.data().summary;
-        }
+        // Memecah teks rangkuman dan data tabel gap secara terpisah
+        const cleanSummary = getPureSummary(fullSummaryText) || "Belum melakukan analisis AI";
+        const kecocokanList = extractKecocokanData(fullSummaryText);
+        
+        const gapAnalysisString = kecocokanList
+          .map(r => `${r.kompetensi}: ${r.skorAktual}/${r.skorTarget} (Gap: ${r.gap})`)
+          .join(" | ");
 
-        // Kalkulasi total skor pengerjaan (jika ada data map skills)
         const totalScoreValue = student.skills 
           ? Object.values(student.skills).reduce((sum, current) => sum + (parseInt(current) || 0), 0)
           : 0;
 
-        // Push data komplit ke array export
         exportData.push({
           studentName: student.fullName || student.name || "Anonymous",
           studentEmail: student.email || "-",
@@ -284,15 +324,15 @@ const StudentResults = ({ user }) => {
           voiceScore: student.voiceScore || 0, 
           dominantAspect: student.dominantAspect || "-",
           recommendedJob: student.targetJob || "Belum ditentukan",
-          aiExplanation: aiExplanation
+          // 💡 REVISI EXCEL: Data dipisah ke dalam 2 kolom yang berbeda
+          gapAnalysisAI: gapAnalysisString || "Belum dianalisis",
+          aiExplanation: cleanSummary
         });
       }
 
-      // Cari nama filter kelas terpilih untuk penamaan file excel
       const currentClassObj = classes.find(c => c.classCode === filterClassCode);
       const currentClassName = currentClassObj ? currentClassObj.className : "Semua_Kelas";
 
-      // Jalankan helper utils excel
       exportAssessmentToExcel(exportData, `Asesmen_${currentClassName}`);
     } catch (error) {
       console.error("Gagal melakukan eksport excel:", error);
@@ -336,7 +376,6 @@ const StudentResults = ({ user }) => {
 
       {/* Filter Row Section */}
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-        {/* ✅ REVISI HEADER FILTER + ACTION BUTTON EXCEL */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-50 pb-2">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Panel Kontrol & Filter</p>
           
@@ -351,7 +390,6 @@ const StudentResults = ({ user }) => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* 1. Filter Nama */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -362,7 +400,6 @@ const StudentResults = ({ user }) => {
             />
           </div>
 
-          {/* 2. Filter Dropdown Kelas */}
           <div className="relative">
             <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select
@@ -377,7 +414,6 @@ const StudentResults = ({ user }) => {
             </select>
           </div>
 
-          {/* 3. Filter Dropdown Target Karir */}
           <div className="relative">
             <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <select
@@ -392,7 +428,6 @@ const StudentResults = ({ user }) => {
             </select>
           </div>
 
-          {/* 4. Filter Tanggal Mulai */}
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -403,7 +438,6 @@ const StudentResults = ({ user }) => {
             />
           </div>
 
-          {/* 5. Filter Tanggal Akhir */}
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -415,7 +449,6 @@ const StudentResults = ({ user }) => {
           </div>
         </div>
 
-        {/* Filter Status & Reset */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
           <div className="flex gap-2">
             {[
@@ -477,15 +510,22 @@ const StudentResults = ({ user }) => {
                     </div>
                   </th>
                 ))}
+                {/* 💡 KOLOM BARU DIANTARA STATUS DAN AKSI */}
+                <th className="px-6 py-4 text-left text-[10px] tracking-widest text-slate-500">Analisis Kecocokan (Gap AI)</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 font-medium">
               {processedStudents.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">Tidak ada data user yang sesuai dengan filter.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">Tidak ada data user yang sesuai dengan filter.</td></tr>
               ) : (
                 processedStudents.map((student) => {
                   const isDone = student.skills && Object.keys(student.skills).length > 0;
+                  
+                  // Mengambil data string analisis mentah dari state real-time cache
+                  const fullSummaryText = aiSummaries[student.id] || "";
+                  const kecocokanRows = extractKecocokanData(fullSummaryText);
+
                   return (
                     <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4 font-bold text-slate-700">{student.fullName || student.name}</td>
@@ -496,6 +536,31 @@ const StudentResults = ({ user }) => {
                           {isDone ? '✅ Selesai' : '⏳ Belum'}
                         </span>
                       </td>
+                      
+                      {/* 💡 RENDER ISI KOLOM BARU: MINI WORKSPACE TABLE UNTUK GAP ANALYSIS */}
+                      <td className="px-6 py-4">
+                        {kecocokanRows.length === 0 ? (
+                          <span className="text-xs text-slate-300 italic font-normal">Belum menjalankan analisis AI</span>
+                        ) : (
+                          <div className="max-w-xs max-h-24 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50 text-[10px] space-y-1 font-medium shadow-inner">
+                            <div className="grid grid-cols-3 font-bold text-slate-400 border-b pb-1 mb-1 uppercase tracking-wider text-[8px]">
+                              <span>Aspek</span>
+                              <span className="text-center">Skor (Akt/Tar)</span>
+                              <span className="text-right">Gap</span>
+                            </div>
+                            {kecocokanRows.map((row, idx) => (
+                              <div key={idx} className="grid grid-cols-3 text-slate-600 border-b border-slate-100/50 last:border-0 py-0.5">
+                                <span className="truncate font-semibold text-slate-700 capitalize">{row.kompetensi}</span>
+                                <span className="text-center font-mono font-bold text-slate-500">{row.skorAktual} / {row.skorTarget}</span>
+                                <span className={`text-right font-mono font-black ${parseFloat(row.gap) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                  {parseFloat(row.gap) > 0 ? `+${row.gap}` : row.gap}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setSelectedStudent(student)}

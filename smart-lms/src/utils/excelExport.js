@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
  * @param {String} packageName - Nama paket soal/asesmen untuk penamaan file
  */
 export const exportAssessmentToExcel = (studentData, packageName = "Asesmen") => {
-  // 1. Map data dari Firestore ke struktur kolom Excel yang rapi
+  // 1. Map data dari StudentResults ke struktur kolom Excel yang rapi terpisah
   const formattedRows = studentData.map((item, index) => {
     return {
       "No": index + 1,
@@ -17,7 +17,9 @@ export const exportAssessmentToExcel = (studentData, packageName = "Asesmen") =>
       "Skor AI Voice": item.voiceScore || 0,
       "Aspek Dominan": item.dominantAspect || "-",
       "Rekomendasi Karier (AI)": item.recommendedJob || "-",
-      "Analisis & Penjelasan Komprehensif AI": item.aiExplanation || "Belum ada analisis AI"
+      // 💡 KOLOM BARU: Hasil parsing tabel gap analisis AI
+      "Analisis Gap Kompetensi (AI)": item.gapAnalysisAI || "Belum dianalisis",
+      "Rangkuman Karir AI": item.aiExplanation || "Belum ada analisis AI"
     };
   });
 
@@ -25,10 +27,6 @@ export const exportAssessmentToExcel = (studentData, packageName = "Asesmen") =>
   const worksheet = XLSX.utils.json_to_sheet(formattedRows);
 
   // 3. Atur lebar kolom (styling basic agar teks penjelasan panjang tidak saling tertumpuk)
-  const maxTextLength = (colName, rows) => {
-    return rows.reduce((max, row) => Math.max(max, row[colName] ? row[colName].toString().length : 0), colName.length);
-  };
-
   worksheet['!cols'] = [
     { wch: 5 },   // No
     { wch: 25 },  // Nama Mahasiswa
@@ -38,9 +36,10 @@ export const exportAssessmentToExcel = (studentData, packageName = "Asesmen") =>
     { wch: 15 },  // Skor AI Voice
     { wch: 20 },  // Aspek Dominan
     { wch: 25 },  // Rekomendasi Karier
-    { wch: 60 },  // Analisis AI (diberi ruang lebar karena teksnya panjang)
-    
+    { wch: 45 },  // Analisis Gap Kompetensi (Diberi ruang cukup untuk format string)
+    { wch: 60 },  // Rangkuman Karir AI (Diberi ruang lebar karena teks narasi panjang)
   ];
+
   for (let row in worksheet) {
     if (row[0] === '!') continue; // Lewati properti konfigurasi bawaan sheet
     
