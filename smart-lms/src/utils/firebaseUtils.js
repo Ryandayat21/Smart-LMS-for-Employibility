@@ -10,7 +10,8 @@ import {
   where,
   orderBy,
   limit,
-  onSnapshot
+  onSnapshot,
+  setDoc
 } from "firebase/firestore";
 import { db } from "../firebase.js";
 
@@ -292,16 +293,45 @@ export async function approveInstructorApplication(applicationId, applicationDat
   const snapshot = await getDocs(q);
 
   let userResult = null;
+  const usernameVal = applicationData.username || applicationData.email;
+  const passwordVal = applicationData.password || applicationData.email;
+
   if (!snapshot.empty) {
     const userDoc = snapshot.docs[0];
     await updateDoc(doc(db, "users", userDoc.id), {
-      role: "instructor"
+      role: "instructor",
+      username: usernameVal,
+      password: passwordVal
     });
-    userResult = { id: userDoc.id, ...userDoc.data(), role: "instructor" };
+    userResult = { 
+      id: userDoc.id, 
+      ...userDoc.data(), 
+      role: "instructor",
+      username: usernameVal,
+      password: passwordVal
+    };
+  } else {
+    // Jika user belum ada, buat dokumen baru di koleksi "users"
+    const newUserRef = doc(collection(db, "users"));
+    const newUserData = {
+      name: applicationData.displayName || "Instruktur Baru",
+      email: applicationData.email,
+      username: usernameVal,
+      password: passwordVal,
+      role: "instructor",
+      isNew: false,
+      createdAt: new Date(),
+      skills: {
+        technical: 0, digitalLiteracy: 0, communication: 0,
+        leadership: 0, teamwork: 0, emotionalIntel: 0,
+        problemSolving: 0, criticalThinking: 0,
+        attentionDetail: 0, workEthic: 0
+      }
+    };
+    await setDoc(newUserRef, newUserData);
+    userResult = { id: newUserRef.id, ...newUserData };
   }
 
-  // Jika user belum ada, tidak perlu buat dokumen baru dengan ID acak.
-  // Dokumen akan dibuat otomatis saat instruktur login via Google Auth di Login.jsx.
   return userResult;
 }
 

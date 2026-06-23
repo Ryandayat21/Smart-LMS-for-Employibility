@@ -111,16 +111,49 @@ const App = () => {
         return () => unsubscribeSnapshot();
       } else {
         const isAdmin = localStorage.getItem('adminLoggedIn') === 'true';
+        const isInstructor = localStorage.getItem('instructorLoggedIn') === 'true';
         if (isAdmin) {
           setUser({
             role: 'admin',
             name: localStorage.getItem('userName') || 'Admin',
             isNew: false,
           });
+          setLoading(false);
+        } else if (isInstructor) {
+          const instructorUserId = localStorage.getItem('instructorUserId');
+          if (instructorUserId) {
+            const userRef = doc(db, "users", instructorUserId);
+            const unsubscribeSnapshot = onSnapshot(userRef, (docSnap) => {
+              if (docSnap.exists()) {
+                const rawData = docSnap.data();
+                setUser({
+                  uid: instructorUserId,
+                  ...rawData,
+                  projects: rawData.projects || [],
+                  certifications: rawData.certifications || [],
+                  role: rawData.role || 'instructor'
+                });
+              } else {
+                localStorage.removeItem('instructorLoggedIn');
+                localStorage.removeItem('instructorUserId');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userName');
+                setUser(null);
+              }
+              setLoading(false);
+            }, (error) => {
+              console.error("Error loading instructor:", error);
+              setLoading(false);
+            });
+            return () => unsubscribeSnapshot();
+          } else {
+            setUser(null);
+            setLoading(false);
+          }
         } else {
           setUser(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     });
 
@@ -359,8 +392,14 @@ const App = () => {
         localStorage.removeItem('adminLoggedIn');
         localStorage.removeItem('userRole');
         localStorage.removeItem('userName');
-        setUser(null);
       }
+      if (localStorage.getItem('instructorLoggedIn') === 'true') {
+        localStorage.removeItem('instructorLoggedIn');
+        localStorage.removeItem('instructorUserId');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+      }
+      setUser(null);
       if (auth.currentUser) await signOut(auth);
       // Setelah logout, state 'user' di onAuthStateChanged 
       // akan otomatis jadi null, dan layar login bakal muncul sendiri.
@@ -378,8 +417,8 @@ const App = () => {
   // B. Jika belum login (Nanti kita buat pages/Login.jsx)
   if (!user) return <Login siteSettings={siteSettings} />;
 
-  // C. Jika user baru (Belum isi data diri/target job), kecuali admin
-  if ((user.isNew === true || !user.targetJob) && user.role !== 'admin') {
+  // C. Jika user baru (Belum isi data diri/target job), kecuali admin dan instruktur
+  if ((user.isNew === true || !user.targetJob) && user.role !== 'admin' && user.role !== 'instructor') {
     return <SetupProfile user={user} onComplete={() => setActiveTab('assessment')} onLogout={handleLogout} />;
   }
 

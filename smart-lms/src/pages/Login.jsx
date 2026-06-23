@@ -1,7 +1,7 @@
 import { auth, googleProvider, db } from '../firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrainCircuit, Sparkles, User, Lock, ArrowRight, Shield, BookOpen } from 'lucide-react';
 import InstructorRegistration from './InstructorRegistration';
 
@@ -14,35 +14,68 @@ const defaultSettings = {
 };
 
 const Login = ({ siteSettings }) => {
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isStaffLogin, setIsStaffLogin] = useState(false);
+  const [staffRole, setStaffRole] = useState('instructor'); // 'instructor' or 'admin'
   const [showInstructorRegistration, setShowInstructorRegistration] = useState(false);
   const settings = siteSettings || defaultSettings;
+
+  // Migrasi otomatis instruktur yang login menggunakan Google sebelumnya
+  useEffect(() => {
+    const runMigration = async () => {
+      try {
+        const q = query(collection(db, "users"), where("role", "==", "instructor"));
+        const snapshot = await getDocs(q);
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          if (data.email && (!data.username || !data.password)) {
+            await updateDoc(doc(db, "users", docSnap.id), {
+              username: data.email,
+              password: data.email
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Migration error:", err);
+      }
+    };
+    runMigration();
+  }, []);
 
   const loginGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Cek apakah user sudah ada di Firestore
+      // Cek apakah email ini merupakan instruktur di Firestore
+      const instQuery = query(collection(db, "users"), where("email", "==", user.email), where("role", "==", "instructor"));
+      const instSnap = await getDocs(instQuery);
+      if (!instSnap.empty) {
+        alert('❌ Akun Instruktur tidak dapat masuk menggunakan Google. Silakan gunakan Username & Password.');
+        await signOut(auth);
+        window.location.reload();
+        return;
+      }
+
+      // Cek apakah user sudah ada di Firestore berdasarkan UID
       const docRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(docRef);
 
-      if (!docSnap.exists()) {
-        // Cek apakah email ini disetujui sebagai instruktur
-        let initialRole = "user";
-        const appQuery = query(collection(db, "instructor_applications"), where("email", "==", user.email), where("status", "==", "approved"));
-        const appSnap = await getDocs(appQuery);
-        if (!appSnap.empty) {
-          initialRole = "instructor";
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        if (userData.role === 'instructor') {
+          alert('❌ Akun Instruktur tidak dapat masuk menggunakan Google. Silakan gunakan Username & Password.');
+          await signOut(auth);
+          window.location.reload();
+          return;
         }
-
-        // Jika benar-benar baru, buatkan dokumen kosong
+      } else {
+        // Buatkan dokumen kosong dengan role "user" untuk student
         await setDoc(docRef, {
           name: user.displayName,
           email: user.email,
-          role: initialRole,
+          role: "user",
           targetJob: "", // Akan diisi di SetupProfile
           skills: {
             technical: 0, digitalLiteracy: 0, communication: 0,
@@ -51,11 +84,6 @@ const Login = ({ siteSettings }) => {
             attentionDetail: 0, workEthic: 0
           }
         });
-      } else {
-        // Jika user sudah ada, biarkan role mereka sesuai database.
-        // Jika admin menurunkan role dari instruktur ke user, kita tidak boleh
-        // menimpanya kembali menjadi instruktur di sini.
-        // Approval admin sudah secara otomatis mengupdate role jika user sudah ada.
       }
       // Reload to trigger auth state change
       window.location.reload();
@@ -64,18 +92,42 @@ const Login = ({ siteSettings }) => {
     }
   };
 
-  const loginAdmin = async () => {
-    // Hardcoded admin credentials
-    const adminCreds = { username: 'admin', password: 'admin123' };
-    if (adminUsername === adminCreds.username && adminPassword === adminCreds.password) {
-      // Simulate admin login, set in localStorage
-      localStorage.setItem('adminLoggedIn', 'true');
-      localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userName', 'Admin');
-      // Reload to apply changes
-      window.location.reload();
-    } else {
-      alert('Username atau password admin salah');
+  const loginStaff = async () => {
+    if (staffRole === 'admin') {
+      const adminCreds = { username: 'admin', password: 'admin123' };
+      if (username === adminCreds.username && password === adminCreds.password) {
+        // Simulate admin login, set in localStorage
+        localStorage.setItem('adminLoggedIn', 'true');
+        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('userName', 'Admin');
+        window.location.reload();
+      } else {
+        alert('Username atau password admin salah');
+      }
+    } else if (staffRole === 'instructor') {
+      try {
+        const q = query(
+          collection(db, "users"),
+          where("username", "==", username),
+          where("password", "==", password),
+          where("role", "==", "instructor")
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const instDoc = snap.docs[0];
+          const instData = instDoc.data();
+          localStorage.setItem('instructorLoggedIn', 'true');
+          localStorage.setItem('instructorUserId', instDoc.id);
+          localStorage.setItem('userRole', 'instructor');
+          localStorage.setItem('userName', instData.name || instData.displayName || 'Instruktur');
+          window.location.reload();
+        } else {
+          alert('Username atau password instruktur salah');
+        }
+      } catch (err) {
+        console.error("Login Instruktur gagal:", err);
+        alert('Terjadi kesalahan saat masuk: ' + err.message);
+      }
     }
   };
 
@@ -223,11 +275,11 @@ const Login = ({ siteSettings }) => {
           {/* Admin & Instructor Registration Buttons */}
           <div className="space-y-2 text-center">
             <button
-              onClick={() => setIsAdminLogin(!isAdminLogin)}
+              onClick={() => setIsStaffLogin(!isStaffLogin)}
               className="text-indigo-600 hover:text-indigo-700 text-xs font-semibold hover:underline flex items-center justify-center gap-1.5 mx-auto transition-colors"
             >
               <Shield size={14} />
-              {isAdminLogin ? 'Kembali ke Login User' : 'Masuk sebagai Administrator'}
+              {isStaffLogin ? 'Kembali ke Login User' : 'Masuk sebagai Instruktur / Admin'}
             </button>
             <button
               onClick={() => setShowInstructorRegistration(true)}
@@ -238,46 +290,73 @@ const Login = ({ siteSettings }) => {
             </button>
           </div>
 
-          {/* Admin Login Form */}
-          {isAdminLogin && (
+          {/* Staff Login Form */}
+          {isStaffLogin && (
             <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-4 duration-300">
+              
+              {/* Role Select Tabs */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/50">
+                <button
+                  type="button"
+                  onClick={() => setStaffRole('instructor')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+                    staffRole === 'instructor'
+                      ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/20'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Instruktur
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStaffRole('admin')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-200 ${
+                    staffRole === 'admin'
+                      ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/20'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Admin
+                </button>
+              </div>
+
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Username Admin</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Username / Email</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                     <User size={16} />
                   </span>
                   <input
                     type="text"
-                    placeholder="Masukkan username admin"
-                    value={adminUsername}
-                    onChange={(e) => setAdminUsername(e.target.value)}
+                    placeholder={staffRole === 'admin' ? "Masukkan username admin" : "Masukkan username/email instruktur"}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Password Admin</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Password</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                     <Lock size={16} />
                   </span>
                   <input
                     type="password"
-                    placeholder="Masukkan password admin"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Masukkan password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all duration-200 text-sm"
                   />
                 </div>
               </div>
 
               <button
-                onClick={loginAdmin}
+                onClick={loginStaff}
                 className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200/50 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
-                <span>Masuk Admin</span>
+                <span>Masuk sebagai {staffRole === 'admin' ? 'Admin' : 'Instruktur'}</span>
                 <ArrowRight size={16} />
               </button>
             </div>

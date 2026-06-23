@@ -16,7 +16,9 @@ const AdminInstructorManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     email: '',
-    displayName: ''
+    displayName: '',
+    username: '',
+    password: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -69,8 +71,8 @@ const AdminInstructorManagement = () => {
     setSaving(true);
     
     try {
-      if (!addFormData.email || !addFormData.displayName) {
-        alert('Email dan nama harus diisi');
+      if (!addFormData.email || !addFormData.displayName || !addFormData.username || !addFormData.password) {
+        alert('Semua field (nama, email, username, dan password) harus diisi');
         return;
       }
 
@@ -84,11 +86,13 @@ const AdminInstructorManagement = () => {
 
       await approveInstructorApplication(appRef.id, {
         email: addFormData.email,
-        displayName: addFormData.displayName
+        displayName: addFormData.displayName,
+        username: addFormData.username,
+        password: addFormData.password
       });
 
       alert('✅ Instruktur berhasil ditambahkan!');
-      setAddFormData({ email: '', displayName: '' });
+      setAddFormData({ email: '', displayName: '', username: '', password: '' });
       setShowAddModal(false);
     } catch (err) {
       console.error('Error adding instructor:', err);
@@ -258,6 +262,30 @@ const AdminInstructorManagement = () => {
                   onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900"
                   placeholder="email@example.com"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Username</span>
+                <input
+                  type="text"
+                  required
+                  value={addFormData.username}
+                  onChange={(e) => setAddFormData({ ...addFormData, username: e.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900"
+                  placeholder="Username instruktur"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-700">Password</span>
+                <input
+                  type="password"
+                  required
+                  value={addFormData.password}
+                  onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-slate-900"
+                  placeholder="••••••••"
                 />
               </label>
 

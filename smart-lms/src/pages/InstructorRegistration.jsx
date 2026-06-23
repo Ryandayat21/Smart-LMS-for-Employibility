@@ -133,7 +133,7 @@ const InstructorRegistration = ({ onBack }) => {
 
           <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-4">
             <p className="text-sm text-indigo-800 text-center">
-              Gunakan <strong>Email Google</strong> Anda. Jika disetujui, Anda dapat langsung masuk dengan "Masuk dengan Google".
+              Setelah pendaftaran disetujui oleh Admin, Anda dapat masuk menggunakan <strong>Email Anda</strong> sebagai Username dan Password default Anda.
             </p>
           </div>
 
