@@ -13,61 +13,62 @@ const InstructorDashboard = ({ user }) => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [myClassCodes, setMyClassCodes] = useState([]);
+
+  // 1. 🔍 QUERY KELAS & PAKET: Hanya ambil kelas & paket yang dibuat oleh instruktur ini
   useEffect(() => {
     if (!user?.uid) return;
 
-    // 1. 🔍 QUERY KELAS: Hanya ambil kelas yang dibuat oleh instruktur ini
-    const qClasses = query(
-      collection(db, "classes"),
-      where("createdBy", "==", user.uid)
-    );
-
+    const qClasses = query(collection(db, "classes"), where("createdBy", "==", user.uid));
     const unsubscribeClasses = onSnapshot(qClasses, (classSnapshot) => {
-      // Ambil semua data kelas milik instruktur ini
-      const myClasses = classSnapshot.docs.map(doc => doc.data());
-      // Ekstrak semua classCode menjadi sebuah array (e.g., ['ABCDEF', 'XYZWQR'])
-      const myClassCodes = myClasses.map(c => c.classCode).filter(Boolean);
-
+      const codes = classSnapshot.docs.map(doc => doc.data().classCode).filter(Boolean);
+      setMyClassCodes(codes);
       setStats(prev => ({ ...prev, totalClasses: classSnapshot.size }));
-
-      // 2. 🔍 QUERY USER (MAHASISWA): Ambil mahasiswa untuk dicocokkan dengan kelas instruktur
-      const qUsers = query(collection(db, "users"), where("role", "==", "user"));
-      
-      const unsubscribeUsers = onSnapshot(qUsers, (userSnapshot) => {
-        const allStudents = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Filter mahasiswa: Hanya hitung/tampilkan jika classCode mahasiswa ada di dalam kelas instruktur ini
-        const filteredStudents = allStudents.filter(student => 
-          myClassCodes.includes(student.classCode)
-        );
-
-        setStats(prev => ({ ...prev, totalStudents: filteredStudents.length }));
-        
-        // Ambil 5 mahasiswa terbaru yang berada di bawah naungan kelas instruktur ini
-        setRecentUsers(filteredStudents.slice(0, 5));
-        setIsLoading(false);
-      });
-
-      // 3. 🔍 QUERY PAKET SOAL: Jika bank soal juga diprivat per instruktur
-      const qPackages = query(
-        collection(db, "question_packages"),
-        where("createdBy", "==", user.uid) // Hapus baris ini jika paket soal mau dibikin global/bisa dilihat semua instruktur
-      );
-      
-      const unsubscribePackages = onSnapshot(qPackages, (pkgSnapshot) => {
-        setStats(prev => ({ ...prev, totalPackages: pkgSnapshot.size }));
-      });
-
-      // Cleanup sub-listeners di dalam
-      return () => {
-        unsubscribeUsers();
-        unsubscribePackages();
-      };
     });
 
-    // Cleanup main listener
-    return () => unsubscribeClasses();
+    const qPackages = query(collection(db, "question_packages"), where("createdBy", "==", user.uid));
+    const unsubscribePackages = onSnapshot(qPackages, (pkgSnapshot) => {
+      setStats(prev => ({ ...prev, totalPackages: pkgSnapshot.size }));
+    });
+
+    return () => {
+      unsubscribeClasses();
+      unsubscribePackages();
+    };
   }, [user?.uid]);
+
+  // 2. 🔍 QUERY USER (MAHASISWA): Pantau mahasiswa dan filter dengan myClassCodes
+  useEffect(() => {
+    if (!user?.uid || myClassCodes.length === 0) {
+      setStats(prev => ({ ...prev, totalStudents: 0 }));
+      setRecentUsers([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const qUsers = query(collection(db, "users"), where("role", "==", "user"));
+    const unsubscribeUsers = onSnapshot(qUsers, (userSnapshot) => {
+      const allStudents = userSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      const filteredStudents = allStudents.filter(student => 
+        myClassCodes.includes(student.classCode)
+      );
+
+      setStats(prev => ({ ...prev, totalStudents: filteredStudents.length }));
+      
+      // Sort berdasarkan data terbaru
+      const sortedStudents = filteredStudents.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
+
+      setRecentUsers(sortedStudents.slice(0, 5));
+      setIsLoading(false);
+    });
+
+    return () => unsubscribeUsers();
+  }, [user?.uid, myClassCodes]);
 
   if (isLoading) {
     return <div className="p-10 text-center text-slate-500 font-medium">Memuat Analisis Dashboard... ⏳</div>;

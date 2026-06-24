@@ -115,38 +115,64 @@ const Assessment = ({ user, setActiveTab }) => {
     fetchQuestions();
   }, [user?.packageId, user?.targetJob]);
 
+  // ✅ Ref untuk menampung skor sesi saat ini tanpa akumulasi dari sesi sebelumnya
+  const sessionScoresRef = React.useRef({
+    technical: { totalScore: 0, count: 0 },
+    communication: { totalScore: 0, count: 0 },
+    problemSolving: { totalScore: 0, count: 0 },
+    leadership: { totalScore: 0, count: 0 },
+    teamwork: { totalScore: 0, count: 0 },
+    emotionalIntel: { totalScore: 0, count: 0 },
+    digitalLiteracy: { totalScore: 0, count: 0 },
+    criticalThinking: { totalScore: 0, count: 0 },
+    attentionDetail: { totalScore: 0, count: 0 },
+    workEthic: { totalScore: 0, count: 0 }
+  });
+
   const handlePGAnswer = async (score) => {
     const currentPG = pgQuestions[pgIndex];
-    const aspect = currentPG.aspect;
-
+    const aspect = currentPG.aspect || 'technical'; // Fallback
     const numericScore = parseFloat(score) || 0;
 
-    const currentAspectData = user.skills_meta?.[aspect] || { totalScore: 0, count: 0 };
-    const newTotalScore = currentAspectData.totalScore + numericScore;
-    const newCount = currentAspectData.count + 1;
-    const averageScore = Math.round((newTotalScore / newCount) * 10) / 10;
-
-    try {
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        skills: { [aspect]: averageScore || 0 },
-        skills_meta: {
-          [aspect]: { totalScore: newTotalScore || 0, count: newCount }
-        }
-      }, { merge: true });
-    } catch (error) {
-      console.error("Gagal update skor:", error);
+    // Catat ke memori lokal khusus sesi ini
+    if (sessionScoresRef.current[aspect]) {
+      sessionScoresRef.current[aspect].totalScore += numericScore;
+      sessionScoresRef.current[aspect].count += 1;
     }
 
-    // ✅ Setelah PG habis → switch ke mode conversation
-    if (pgIndex < pgQuestions.length - 1) {
-      setPgIndex(prev => prev + 1);
-    } else {
-      if (conversationQuestions.length > 0) {
-        setMode('conversation'); // Lanjut ke conversation batch
-      } else {
-        setIsFinished(true);    // Tidak ada conversation, langsung selesai
+    // Jika soal PG habis, hitung semua rata-rata murni dari sesi ini & timpa ke Firebase
+    if (pgIndex === pgQuestions.length - 1 || pgQuestions.length === 0) {
+      const finalSkills = {};
+      Object.keys(sessionScoresRef.current).forEach(key => {
+        const data = sessionScoresRef.current[key];
+        if (data.count > 0) {
+          finalSkills[key] = Math.round((data.totalScore / data.count) * 10) / 10;
+        } else {
+          finalSkills[key] = 0; // Reset ke 0 jika tidak ada soal untuk aspek ini
+        }
+      });
+
+      try {
+        const userRef = doc(db, "users", user.uid);
+        await setDoc(userRef, {
+          skills: finalSkills
+        }, { merge: true });
+
+        // Hapus cache AI summary lama agar tersinkronisasi dan minta regenerasi
+        import('firebase/firestore').then(({ deleteDoc }) => {
+          deleteDoc(doc(db, "ai_summaries", user.uid)).catch(e => console.log("No old AI cache to delete"));
+        });
+      } catch (error) {
+        console.error("Gagal update skor akhir PG:", error);
       }
+
+      if (conversationQuestions.length > 0) {
+        setMode('conversation');
+      } else {
+        setIsFinished(true);
+      }
+    } else {
+      setPgIndex(prev => prev + 1);
     }
   };
 
@@ -236,7 +262,22 @@ const Assessment = ({ user, setActiveTab }) => {
         </div>
 
         <button
-          onClick={() => setIsStarted(true)}
+          onClick={() => {
+            // Reset meta skor lokal khusus untuk sesi ujian yang baru ini
+            sessionScoresRef.current = {
+              technical: { totalScore: 0, count: 0 },
+              communication: { totalScore: 0, count: 0 },
+              problemSolving: { totalScore: 0, count: 0 },
+              leadership: { totalScore: 0, count: 0 },
+              teamwork: { totalScore: 0, count: 0 },
+              emotionalIntel: { totalScore: 0, count: 0 },
+              digitalLiteracy: { totalScore: 0, count: 0 },
+              criticalThinking: { totalScore: 0, count: 0 },
+              attentionDetail: { totalScore: 0, count: 0 },
+              workEthic: { totalScore: 0, count: 0 }
+            };
+            setIsStarted(true);
+          }}
           disabled={!isAgreed}
           className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-sm"
         >

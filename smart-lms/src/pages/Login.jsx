@@ -106,15 +106,31 @@ const Login = ({ siteSettings }) => {
       }
     } else if (staffRole === 'instructor') {
       try {
-        const q = query(
+        // Cek login menggunakan Username ATAU Email
+        const qUsername = query(
           collection(db, "users"),
           where("username", "==", username),
           where("password", "==", password),
           where("role", "==", "instructor")
         );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const instDoc = snap.docs[0];
+        
+        const qEmail = query(
+          collection(db, "users"),
+          where("email", "==", username), // Input username dipakai untuk mencari kecocokan email
+          where("password", "==", password),
+          where("role", "==", "instructor")
+        );
+
+        const [snapUser, snapEmail] = await Promise.all([getDocs(qUsername), getDocs(qEmail)]);
+        
+        let instDoc = null;
+        if (!snapUser.empty) {
+          instDoc = snapUser.docs[0];
+        } else if (!snapEmail.empty) {
+          instDoc = snapEmail.docs[0];
+        }
+
+        if (instDoc) {
           const instData = instDoc.data();
           localStorage.setItem('instructorLoggedIn', 'true');
           localStorage.setItem('instructorUserId', instDoc.id);
@@ -122,7 +138,7 @@ const Login = ({ siteSettings }) => {
           localStorage.setItem('userName', instData.name || instData.displayName || 'Instruktur');
           window.location.reload();
         } else {
-          alert('Username atau password instruktur salah');
+          alert('Username/Email atau password instruktur salah');
         }
       } catch (err) {
         console.error("Login Instruktur gagal:", err);
