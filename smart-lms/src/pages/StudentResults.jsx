@@ -198,12 +198,12 @@ const StudentResults = ({ user }) => {
     }
 
     const myClassCodes = classes.map(c => c.classCode).filter(Boolean);
-    const q = query(collection(db, "users"), where("role", "==", "user"));
+    const q = query(collection(db, "users"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const filteredMyStudents = allStudents.filter(student => 
-        myClassCodes.includes(student.classCode)
+        myClassCodes.includes(student.classCode) && student.role !== 'admin' && student.role !== 'instructor'
       );
       
       setStudents(filteredMyStudents);
@@ -251,7 +251,7 @@ const StudentResults = ({ user }) => {
       const matchClass = filterClassCode ? s.classCode === filterClassCode : true;
       const matchTarget = filterTargetJob ? target === filterTargetJob.toLowerCase() : true;
 
-      const isDone = s.skills && Object.keys(s.skills).length > 0;
+      const isDone = s.skills && Object.values(s.skills).some(val => val > 0);
       const matchStatus =
         filterStatus === 'all' ? true :
         filterStatus === 'done' ? isDone : !isDone;
@@ -279,8 +279,8 @@ const StudentResults = ({ user }) => {
         valA = (a.className || "").toLowerCase();
         valB = (b.className || "").toLowerCase();
       } else if (sortKey === 'status') {
-        valA = a.skills && Object.keys(a.skills).length > 0 ? 1 : 0;
-        valB = b.skills && Object.keys(b.skills).length > 0 ? 1 : 0;
+        valA = a.skills && Object.values(a.skills).some(val => val > 0) ? 1 : 0;
+        valB = b.skills && Object.values(b.skills).some(val => val > 0) ? 1 : 0;
       }
 
       if (valA < valB) return sortDir === 'asc' ? -1 : 1;
@@ -343,7 +343,7 @@ const StudentResults = ({ user }) => {
   };
 
   const uniqueTargetJobs = [...new Set(students.map(s => s.targetJob).filter(Boolean))];
-  const totalDone = students.filter(s => s.skills && Object.keys(s.skills).length > 0).length;
+  const totalDone = students.filter(s => s.skills && Object.values(s.skills).some(val => val > 0)).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
@@ -510,7 +510,7 @@ const StudentResults = ({ user }) => {
                     </div>
                   </th>
                 ))}
-                {/* 💡 KOLOM BARU DIANTARA STATUS DAN AKSI */}
+                <th className="px-6 py-4 text-left text-[10px] tracking-widest text-slate-500">Total Skor</th>
                 <th className="px-6 py-4 text-left text-[10px] tracking-widest text-slate-500">Analisis Kecocokan (Gap AI)</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
@@ -520,7 +520,7 @@ const StudentResults = ({ user }) => {
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">Tidak ada data user yang sesuai dengan filter.</td></tr>
               ) : (
                 processedStudents.map((student) => {
-                  const isDone = student.skills && Object.keys(student.skills).length > 0;
+                  const isDone = student.skills && Object.values(student.skills).some(val => val > 0);
                   
                   // Mengambil data string analisis mentah dari state real-time cache
                   const fullSummaryText = aiSummaries[student.id] || "";
@@ -536,11 +536,28 @@ const StudentResults = ({ user }) => {
                           {isDone ? '✅ Selesai' : '⏳ Belum'}
                         </span>
                       </td>
-                      
+
+                      {/* KOLOM BARU: TOTAL SKOR */}
+                      <td className="px-6 py-4 font-mono font-bold text-slate-700">
+                        {Object.values(student.skills || {}).reduce((sum, val) => sum + (parseFloat(val) || 0), 0).toFixed(1)}
+                      </td>
+
                       {/* 💡 RENDER ISI KOLOM BARU: MINI WORKSPACE TABLE UNTUK GAP ANALYSIS */}
                       <td className="px-6 py-4">
                         {kecocokanRows.length === 0 ? (
-                          <span className="text-xs text-slate-300 italic font-normal">Belum menjalankan analisis AI</span>
+                          <div className="max-w-xs max-h-24 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50 text-[10px] space-y-1 font-medium shadow-inner">
+                            <div className="grid grid-cols-2 font-bold text-slate-400 border-b pb-1 mb-1 uppercase tracking-wider text-[8px]">
+                              <span>Aspek</span>
+                              <span className="text-right">Skor Aktual</span>
+                            </div>
+                            {Object.entries(student.skills || {}).map(([k, v], idx) => (
+                              <div key={idx} className="grid grid-cols-2 text-slate-600 border-b border-slate-100/50 last:border-0 py-0.5">
+                                <span className="truncate font-semibold text-slate-700 capitalize">{k.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                <span className="text-right font-mono font-bold text-slate-500">{v}</span>
+                              </div>
+                            ))}
+                            <div className="text-[8px] text-amber-500 italic mt-1 pt-1 border-t text-center">User belum menjalankan Analisis AI</div>
+                          </div>
                         ) : (
                           <div className="max-w-xs max-h-24 overflow-y-auto border border-slate-100 rounded-xl p-2 bg-slate-50 text-[10px] space-y-1 font-medium shadow-inner">
                             <div className="grid grid-cols-3 font-bold text-slate-400 border-b pb-1 mb-1 uppercase tracking-wider text-[8px]">

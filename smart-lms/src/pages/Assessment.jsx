@@ -119,17 +119,19 @@ const Assessment = ({ user, setActiveTab }) => {
     const currentPG = pgQuestions[pgIndex];
     const aspect = currentPG.aspect;
 
+    const numericScore = parseFloat(score) || 0;
+
     const currentAspectData = user.skills_meta?.[aspect] || { totalScore: 0, count: 0 };
-    const newTotalScore = currentAspectData.totalScore + score;
+    const newTotalScore = currentAspectData.totalScore + numericScore;
     const newCount = currentAspectData.count + 1;
     const averageScore = Math.round((newTotalScore / newCount) * 10) / 10;
 
     try {
       const userRef = doc(db, "users", user.uid);
       await setDoc(userRef, {
-        skills: { [aspect]: averageScore },
+        skills: { [aspect]: averageScore || 0 },
         skills_meta: {
-          [aspect]: { totalScore: newTotalScore, count: newCount }
+          [aspect]: { totalScore: newTotalScore || 0, count: newCount }
         }
       }, { merge: true });
     } catch (error) {
