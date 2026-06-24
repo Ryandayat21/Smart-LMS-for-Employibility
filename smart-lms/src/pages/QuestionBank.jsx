@@ -65,12 +65,22 @@ const AdminQuestionBank = ({ user }) => {
 
   // 1. Ambil List Paket Soal
   useEffect(() => {
+    if (!user) return;
     const qPack = query(collection(db, "question_packages"));
     const unsubscribe = onSnapshot(qPack, (snapshot) => {
-      setPackages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter: Instruktur tidak bisa lihat punya admin, admin tidak bisa lihat punya instruktur
+      if (user.role === 'admin') {
+        docs = docs.filter(d => d.creatorRole === 'admin' || d.createdBy === 'admin' || d.createdBy === user.uid || (!d.creatorRole && !d.createdBy));
+      } else if (user.role === 'instructor') {
+        docs = docs.filter(d => d.createdBy === user.uid);
+      }
+      
+      setPackages(docs);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // 2. Ambil List Soal Berdasarkan Paket yang Dipilih
   useEffect(() => {
@@ -91,7 +101,8 @@ const AdminQuestionBank = ({ user }) => {
         targetJob: newPackageTargetJob,
         targetScores: newPackageTargetScores,
         createdAt: new Date(),
-        createdBy: user?.uid || user?.name || 'admin'
+        createdBy: user?.uid || 'admin',
+        creatorRole: user?.role || 'admin'
       });
       setNewPackageName("");
       setNewPackageTargetJob("");

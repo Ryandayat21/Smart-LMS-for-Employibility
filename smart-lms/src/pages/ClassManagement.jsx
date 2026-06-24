@@ -35,12 +35,22 @@ const ClassManagement = ({ user }) => {
 
   // 2. Ambil List Paket Soal untuk Dropdown Pilihan
   useEffect(() => {
+    if (!user) return;
     const qPack = query(collection(db, "question_packages"));
     const unsubscribe = onSnapshot(qPack, (snapshot) => {
-      setPackages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Filter: Instruktur tidak bisa menautkan paket soal buatan admin, begitu sebaliknya
+      if (user.role === 'admin') {
+        docs = docs.filter(d => d.creatorRole === 'admin' || d.createdBy === 'admin' || d.createdBy === user.uid || (!d.creatorRole && !d.createdBy));
+      } else if (user.role === 'instructor') {
+        docs = docs.filter(d => d.createdBy === user.uid);
+      }
+      
+      setPackages(docs);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   // 3. Fungsi Generate Kode Kelas Acak 6 Digit
   const generateClassCode = () => {
