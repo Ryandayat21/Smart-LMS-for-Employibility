@@ -55,6 +55,94 @@ smart-lms/
 └── vite.config.js          # Konfigurasi Vite
 ```
 
+## 🗄️ Struktur Database (Cloud Firestore)
+
+Aplikasi ini menggunakan **Cloud Firestore** sebagai database NoSQL. Berikut adalah penjelasan struktur koleksi (*collections*) dan dokumen yang digunakan berdasarkan skema database:
+
+### 1. Koleksi `users`
+Menyimpan data profil pengguna (Mahasiswa, Instruktur, dan Admin), termasuk skor kompetensi aktual dan target skor industri.
+* **Fields**:
+  * `name` / `fullName` (String): Nama lengkap pengguna.
+  * `email` (String): Alamat email untuk login.
+  * `phone` (String): Nomor telepon pengguna.
+  * `age` (String): Usia pengguna.
+  * `bio` (String): Deskripsi diri singkat/biodata.
+  * `education` (String): Riwayat pendidikan terakhir (misal: "S1 Informatika").
+  * `role` (String): Peran pengguna (`user` untuk mahasiswa, `instructor` untuk dosen, atau `admin`).
+  * `isNew` (Boolean): Status apakah pengguna baru pertama kali mendaftar dan belum menyelesaikan asesmen awal.
+  * `classId` / `classCode` / `className` (String): Referensi ID, kode unik, dan nama kelas tempat mahasiswa tergabung.
+  * `packageId` / `packageName` (String): ID dan nama paket asesmen yang sedang ditugaskan kepada mahasiswa tersebut.
+  * `targetJob` (String): Jalur karier/pekerjaan yang ditargetkan (misalnya `software-eng`).
+  * `skills` (Map): Nilai kompetensi aktual saat ini untuk 10 aspek *employability* (tipe data `int64` / `double`):
+    * `attentionDetail`, `communication`, `criticalThinking`, `digitalLiteracy`, `emotionalIntel`, `leadership`, `problemSolving`, `teamwork`, `technical`, `workEthic`.
+  * `targetScores` (Map): Target skor standar industri untuk 10 aspek kompetensi di atas yang disesuaikan dengan pekerjaan target (`targetJob`).
+
+### 2. Koleksi `instructor_applications`
+Menyimpan data pengajuan pendaftaran pengguna sebagai Instruktur (Dosen) sebelum disetujui oleh Administrator.
+* **Fields**:
+  * `username` (String): Username pendaftar.
+  * `displayName` (String): Nama tampilan instruktur.
+  * `email` (String): Alamat email.
+  * `password` (String): Kata sandi akun.
+  * `status` (String): Status pendaftaran (`pending`, `approved`, `rejected`).
+  * `createdAt` (Timestamp): Waktu pengajuan pendaftaran dilakukan.
+  * `approvedAt` (Timestamp): Waktu pengajuan disetujui oleh administrator.
+
+### 3. Koleksi `classes`
+Menyimpan data kelas belajar yang dibuat oleh Instruktur.
+* **Fields**:
+  * `classCode` (String): Kode kelas unik (misal: `C6X8H8`) yang digunakan mahasiswa untuk masuk ke kelas.
+  * `className` (String): Nama kelas.
+  * `createdBy` (String): ID Instruktur pembuat kelas (merujuk ke UID di koleksi `users`).
+  * `packageId` (String): ID paket asesmen yang ditugaskan ke kelas ini.
+  * `packageName` (String): Nama paket asesmen yang ditugaskan.
+  * `createdAt` (Timestamp): Waktu pembuatan kelas.
+
+### 4. Koleksi `question_packages`
+Menyimpan data paket soal/asesmen kompetensi yang dikelola oleh Instruktur.
+* **Fields**:
+  * `packageName` (String): Nama paket soal/asesmen.
+  * `targetJob` (String): Pekerjaan target atau kelas terkait dari paket asesmen ini.
+  * `createdBy` (String): ID pembuat paket (UID Instruktur).
+  * `creatorRole` (String): Peran pembuat (`instructor`).
+  * `createdAt` (Timestamp): Waktu pembuatan paket soal.
+  * `targetScores` (Map): Target skor standar industri (10 aspek employability) yang ditetapkan untuk paket asesmen ini.
+
+### 5. Koleksi/Sub-koleksi `questions`
+Menyimpan butir-butir pertanyaan asesmen (soal pilihan ganda) yang terkait dengan paket soal.
+* **Fields**:
+  * `questionText` (String): Konten pertanyaan asesmen.
+  * `scenario` (String): Latar belakang skenario studi kasus (jika ada).
+  * `type` (String): Tipe soal (misalnya `pg` untuk pilihan ganda).
+  * `aspect` (String): Aspek kompetensi utama yang dinilai (misal: `leadership`).
+  * `targetedAspects` (Array): Daftar aspek tambahan yang ikut dinilai.
+  * `weight` (Number): Bobot penilaian untuk pertanyaan ini.
+  * `order` (Number): Urutan nomor pertanyaan.
+  * `options` (Array of Maps): Daftar pilihan jawaban asesmen. Setiap objek pilihan memiliki:
+    * `label` (String): Label opsi (misal: `A`, `B`, `C`, `D`, `E`).
+    * `text` (String): Teks deskripsi jawaban.
+    * `score` (Number): Skor poin yang didapatkan pengguna jika memilih jawaban ini.
+
+### 6. Koleksi `ai_summaries`
+Menyimpan log hasil analisis rekomendasi karier berbasis kecerdasan buatan (AI) untuk mahasiswa.
+* **Fields**:
+  * `uid` (String): ID mahasiswa bersangkutan (UID pengguna).
+  * `name` (String): Nama mahasiswa.
+  * `education` (String): Latar belakang pendidikan terakhir.
+  * `targetJob` (String): Pekerjaan target/karier impian.
+  * `hasProjects` (Boolean): Menunjukkan apakah mahasiswa memiliki riwayat proyek portofolio.
+  * `projectCount` (Number): Jumlah proyek portofolio yang dicantumkan.
+  * `hasCerts` (Boolean): Menunjukkan apakah mahasiswa memiliki sertifikasi keahlian.
+  * `certCount` (Number): Jumlah sertifikasi keahlian.
+  * `generatedAt` (Timestamp): Waktu ketika analisis AI berhasil di-generate.
+  * `skills` (Map): Nilai aktual kompetensi mahasiswa pada saat analisis di-generate (10 aspek).
+  * `summary` (String): Konten markdown laporan evaluasi AI yang terdiri dari tag parsing berikut:
+    * `<kecocokan>`: Tabel perbandingan skor aktual vs target industri serta gap nilai.
+    * `<rekomendasi>`: Rekomendasi langkah konkret pengembangan skill mahasiswa.
+    * `<keselarasan>`: Evaluasi kelayakan portofolio/sertifikasi mahasiswa dan saran sertifikasi industri penunjang karier.
+
+---
+
 ## 🚀 Instalasi & Cara Menjalankan (Local Development)
 
 Ikuti langkah-langkah di bawah ini untuk menjalankan proyek secara lokal:
