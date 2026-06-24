@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { KeyRound, CheckCircle2, ArrowRight, BookOpen, Layers } from 'lucide-react';
+import { KeyRound, CheckCircle2, ArrowRight, BookOpen, Layers, LogOut } from 'lucide-react';
 
 const JoinClass = ({ user }) => {
   const [classCode, setClassCode] = useState("");
@@ -266,8 +266,39 @@ const JoinClass = ({ user }) => {
           </div>
 
           <p className="text-[10px] text-slate-400 leading-relaxed italic">
-            *Jika Anda salah memasukkan kelas, hubungi Instruktur Anda untuk mereset data keanggotaan kelas Anda.
+            *Jika Anda salah memasukkan kelas, Anda dapat keluar dan bergabung dengan kelas lain.
           </p>
+
+          <button
+            onClick={async () => {
+              if (window.confirm("Apakah Anda yakin ingin keluar dari kelas ini?")) {
+                setIsLoading(true);
+                try {
+                  const userRef = doc(db, "users", user.uid);
+                  await updateDoc(userRef, {
+                    classId: null,
+                    classCode: null,
+                    className: null,
+                    packageId: null,
+                    packageName: null
+                  });
+                  alert("Berhasil keluar dari kelas.");
+                } catch (error) {
+                  console.error("Gagal keluar kelas:", error);
+                  alert("Terjadi kesalahan saat mencoba keluar dari kelas.");
+                } finally {
+                  setIsLoading(false);
+                }
+              }
+            }}
+            disabled={isLoading}
+            className={`mt-4 px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 mx-auto ${
+              isLoading ? 'bg-slate-100 text-slate-400' : 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+            }`}
+          >
+            <LogOut size={14} />
+            {isLoading ? "Memproses..." : "Keluar Kelas"}
+          </button>
         </div>
       )}
     </div>
